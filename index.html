@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#070b0e">
+  <meta name="description" content="إتقان - نظام إدارة حلقة تحفيظ القرآن الكريم ومتابعة الحفظ والمراجعة والغياب بدون إنترنت (PWA)">
+  <title>«إِتْقَانْ» | نظام إدارة حلقات تحفيظ القرآن الكريم</title>
+  
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- تنبيه تذكير النسخ الاحتياطي (يظهر بعد 30 يوماً من آخر تصدير) -->
+  <div id="backupReminderBanner" class="backup-reminder-banner" style="display: none;">
+    <div class="backup-reminder-text">
+      <span>💾</span>
+      <span id="backupReminderMsg">تذكير: لم تقم بتصدير نسخة احتياطية لبيانات الحلقة منذ أكثر من 30 يوماً!</span>
+    </div>
+    <div style="display: flex; gap: 0.5rem; align-items: center;">
+      <button id="btnQuickBackup" class="btn-primary" style="padding: 0.4rem 0.9rem; font-size: 0.85rem; min-height: 38px;">تصدير نسخة احتياطية الآن</button>
+      <button id="btnDismissBackupReminder" class="icon-btn" style="width: 38px; height: 38px; font-size: 1rem;" title="إغلاق">✕</button>
+    </div>
+  </div>
+
+  <div class="app-container">
+    
+    <!-- ===================== الترويسة العلوية ===================== -->
+    <header class="app-header">
+      <div class="brand-section">
+        <div class="brand-icon" title="إتقان">
+          <span>📖</span>
+        </div>
+        <div class="brand-info">
+          <h1>
+            إِتْـقَـانْ
+            <span class="app-badge">حلقة القرآن</span>
+          </h1>
+          <div class="current-date" id="currentDateDisplay">جاري التحميل...</div>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <!-- شارة الاتصال بالأوفلاين -->
+        <div class="status-badge online" id="networkStatusBadge" title="حالة الاتصال">
+          <span class="dot"></span>
+          <span id="networkStatusText">يعمل بدون إنترنت</span>
+        </div>
+
+        <!-- زر التبديل بين الوضع الليلي والنهاري -->
+        <button id="themeToggleBtn" class="icon-btn" title="تبديل المظهر (ليلي / نهاري)">
+          <span id="themeToggleIcon">🌙</span>
+        </button>
+
+        <!-- زر الرجوع إلى الحلقة عند التواجد في شاشة السجل -->
+        <button id="btnBackToRing" class="icon-btn" style="display: none;" title="العودة للحلقة الرئيسية">
+          <span>🏠</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- ===================== الواجهة الرئيسية للحلقة ===================== -->
+    <main id="mainRingView">
+      
+      <!-- 1. بطاقات مقررات ورد اليوم -->
+      <section class="daily-sessions-grid" aria-label="مقررات ورد اليوم">
+        
+        <!-- بطاقة ورد التلقين -->
+        <article class="session-card talqeen-card">
+          <div>
+            <div class="session-card-header">
+              <span class="session-badge">
+                <span>✨</span> ورد التلقين لليوم
+              </span>
+              <span style="font-size: 0.8rem; color: var(--text-muted);" id="talqeenDateBadge">اليوم</span>
+            </div>
+            <div class="session-content">
+              <div class="session-main-text" id="talqeenSurahDisplay">سورة الفاتحة</div>
+              <div class="session-sub-text" id="talqeenPageDisplay">
+                <span>📄</span> صفحة: 1 في المصحف الشريف
+              </div>
+            </div>
+          </div>
+          <div class="session-card-footer">
+            <button id="btnEditTalqeen" class="btn-session-edit">
+              <span>✏️</span> تعديل المقرر
+            </button>
+          </div>
+        </article>
+
+        <!-- بطاقة درس الوعظ والإيمان -->
+        <article class="session-card wadh-card">
+          <div>
+            <div class="session-card-header">
+              <span class="session-badge">
+                <span>💡</span> درس الوعظ والإيمان
+              </span>
+              <span style="font-size: 0.8rem; color: var(--text-muted);" id="wadhDateBadge">اليوم</span>
+            </div>
+            <div class="session-content">
+              <div class="session-main-text" id="wadhTitleDisplay">فضل تدبر القرآن الكريم</div>
+              <div class="session-sub-text" id="wadhPageDisplay">
+                <span>📌</span> المرجع / الصفحة: غير محدد
+              </div>
+            </div>
+          </div>
+          <div class="session-card-footer">
+            <button id="btnEditWadh" class="btn-session-edit">
+              <span>✏️</span> تعديل الدرس
+            </button>
+          </div>
+        </article>
+
+      </section>
+
+      <!-- 2. شبكة الإجراءات السريعة -->
+      <section class="quick-actions-grid" aria-label="إجراءات سريعة">
+        <button id="btnOpenAttendanceModal" class="action-btn primary-action">
+          <div class="action-icon">📋</div>
+          <div class="action-text">
+            <strong>تسجيل غياب اليوم</strong>
+            <span>رصد سريع للحضور والغياب</span>
+          </div>
+        </button>
+
+        <button id="btnOpenHistoryView" class="action-btn">
+          <div class="action-icon">🗂️</div>
+          <div class="action-text">
+            <strong>سجل الأيام السابقة</strong>
+            <span>مراجعة المقررات والحضور السابق</span>
+          </div>
+        </button>
+
+        <button id="btnOpenAddStudentModal" class="action-btn">
+          <div class="action-icon">➕</div>
+          <div class="action-text">
+            <strong>إضافة طالب جديد</strong>
+            <span>تسجيل بيانات طالب في الحلقة</span>
+          </div>
+        </button>
+
+        <button id="btnOpenBackupModal" class="action-btn">
+          <div class="action-icon">💾</div>
+          <div class="action-text">
+            <strong>النسخ الاحتياطي</strong>
+            <span>تصدير واستعادة ملفات البيانات</span>
+          </div>
+        </button>
+      </section>
+
+      <!-- 3. شريط البحث والتصفية والإحصائيات -->
+      <section class="filter-stats-panel" aria-label="البحث والتصفية">
+        <div class="search-row">
+          <div class="search-input-wrapper">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="studentSearchInput" class="search-input" placeholder="ابحث عن طالب بالاسم..." autocomplete="off">
+            <button id="clearSearchBtn" class="search-clear-btn" title="مسح البحث">✕</button>
+          </div>
+
+          <div class="view-mode-toggles">
+            <button id="viewModeFullBtn" class="view-mode-btn active" title="عرض كامل للبطاقات">
+              <span>🗂️</span> عرض كامل
+            </button>
+            <button id="viewModeCompactBtn" class="view-mode-btn" title="عرض مضغوط (الاسم فقط)">
+              <span>☰</span> الاسم فقط
+            </button>
+          </div>
+        </div>
+
+        <div class="pills-and-stats-row">
+          <!-- فلاتر الحالة السريعة -->
+          <div class="filter-pills">
+            <button class="filter-pill active" data-filter="all">الكل</button>
+            <button class="filter-pill" data-filter="present">الحاضرون</button>
+            <button class="filter-pill" data-filter="absent">الغائبون</button>
+            <button class="filter-pill" data-filter="pending">لم يُسمّع اليوم بعد</button>
+          </div>
+
+          <!-- شريط الإحصائيات الحية -->
+          <div class="stats-badges-group">
+            <div class="stat-item stat-total">
+              <span>إجمالي الطلاب:</span>
+              <strong id="statTotalStudents">0</strong>
+            </div>
+            <div class="stat-item stat-present">
+              <span>حاضر:</span>
+              <strong id="statPresentStudents">0</strong>
+            </div>
+            <div class="stat-item stat-absent">
+              <span>غائب:</span>
+              <strong id="statAbsentStudents">0</strong>
+            </div>
+            <div class="stat-item stat-pending">
+              <span>بانتظار التسميع:</span>
+              <strong id="statPendingRecitation">0</strong>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4. حاوية قائمة الطلاب -->
+      <section id="studentsContainer" class="students-container" aria-label="قائمة طلاب الحلقة">
+        <!-- يتم توليد البطاقات ديناميكياً عبر JavaScript -->
+      </section>
+
+    </main>
+
+    <!-- ===================== شاشة مركز السجلات والأرشيف (Archive & History View) ===================== -->
+    <section id="historyViewSection" class="history-view-section" aria-label="مركز السجلات والأرشيف">
+      <div class="history-header-card">
+        <div class="history-header-title">
+          <button id="btnBackFromHistory" class="icon-btn" title="رجوع للحلقة">
+            <span>←</span>
+          </button>
+          <h2>مركز السجلات والأرشيف</h2>
+        </div>
+        
+        <div class="history-stats-bar">
+          <div class="history-stat-badge">
+            <span>الأيام المسجلة:</span>
+            <strong id="historyTotalDaysCount">0</strong>
+          </div>
+          <div class="history-stat-badge">
+            <span>متوسط نسبة الحضور:</span>
+            <strong id="historyAvgAttendanceRate">0%</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- شريط تبويبات الأرشيف الأربعة -->
+      <div class="archive-tabs-nav">
+        <button class="archive-tab-btn active" data-archive-tab="attendance">
+          <span>📋</span> سجل الأيام والحضور
+        </button>
+        <button class="archive-tab-btn" data-archive-tab="talqeen">
+          <span>✨</span> أوراد التلقين
+        </button>
+        <button class="archive-tab-btn" data-archive-tab="wadh">
+          <span>💡</span> دروس الوعظ
+        </button>
+        <button class="archive-tab-btn" data-archive-tab="exams">
+          <span>🎓</span> سجل الاختبارات
+        </button>
+      </div>
+
+      <!-- تبويب 1: سجل الأيام والحضور -->
+      <div id="archivePaneAttendance" class="archive-pane active">
+        <div class="history-filters-bar">
+          <input type="date" id="historyDateFilter" class="form-control" style="max-width: 220px;" title="تصفية حسب التاريخ">
+          <button id="btnClearHistoryDate" class="btn-secondary" style="padding: 0.5rem 1rem; min-height: 44px;">عرض كل التواريخ</button>
+          <div class="filter-pills" style="margin-right: auto;">
+            <button class="filter-pill active" data-history-filter="all">الكل</button>
+            <button class="filter-pill" data-history-filter="has-absence">أيام بها غياب</button>
+            <button class="filter-pill" data-history-filter="full">حضور كامل</button>
+          </div>
+        </div>
+        <div id="historyDaysContainer" class="history-cards-grid">
+          <!-- تولد ديناميكياً عبر JS -->
+        </div>
+      </div>
+
+      <!-- تبويب 2: سجل أوراد التلقين -->
+      <div id="archivePaneTalqeen" class="archive-pane">
+        <div class="archive-pane-header" style="margin-bottom: 1rem;">
+          <span style="font-size: 0.9rem; color: var(--text-muted);">جميع أوراد التلقين التي تم رصدها للحلقة مرتبة زمنياً من الأحدث إلى الأقدم:</span>
+        </div>
+        <div id="archiveTalqeenContainer" class="archive-cards-grid">
+          <!-- تولد ديناميكياً -->
+        </div>
+      </div>
+
+      <!-- تبويب 3: سجل دروس الوعظ -->
+      <div id="archivePaneWadh" class="archive-pane">
+        <div class="archive-search-bar" style="margin-bottom: 1.25rem;">
+          <div class="search-input-wrapper">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="wadhSearchInput" class="search-input" placeholder="ابحث في عناوين ومواضيع دروس الوعظ والإيمان..." autocomplete="off">
+          </div>
+        </div>
+        <div id="archiveWadhContainer" class="archive-cards-grid">
+          <!-- تولد ديناميكياً -->
+        </div>
+      </div>
+
+      <!-- تبويب 4: سجل الاختبارات الشامل مع فلترة الشهر والبحث -->
+      <div id="archivePaneExams" class="archive-pane">
+        <div class="archive-filter-row" style="display: flex; gap: 0.75rem; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap;">
+          <div class="search-input-wrapper" style="flex: 1; min-width: 240px;">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="examArchiveSearchInput" class="search-input" placeholder="ابحث باسم الطالب أو اسم الاختبار..." autocomplete="off">
+          </div>
+          <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+            <label for="examArchiveMonthFilter" style="font-size: 0.85rem; font-weight: 700; color: var(--text-muted); white-space: nowrap;">فلترة الشهر:</label>
+            <input type="month" id="examArchiveMonthFilter" class="form-control" style="width: auto; min-width: 170px;" title="فلترة حسب شهر الاختبار">
+            <button id="btnClearExamMonthFilter" class="btn-secondary" style="padding: 0.5rem 0.9rem; min-height: 44px;" title="عرض كل الشهور">الكل</button>
+          </div>
+        </div>
+        <div id="archiveExamsContainer" class="archive-exams-container">
+          <!-- تولد ديناميكياً -->
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- ==========================================================================
+       النوافذ المنبثقة (Modals & Bottom Sheets)
+       ========================================================================== -->
+
+  <!-- 1. نافذة إضافة وتعديل طالب -->
+  <div id="studentModal" class="modal-backdrop">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="studentModalTitle">
+          <span>➕</span> إضافة طالب جديد
+        </h3>
+        <button class="modal-close-btn" data-close-modal="studentModal">✕</button>
+      </div>
+      <form id="studentForm">
+        <input type="hidden" id="studentEditId">
+        <div class="modal-body">
+          
+          <div class="form-group">
+            <label class="form-label" for="studentNameInput">
+              <span class="required-star">*</span> اسم الطالب رباعي (إجباري):
+            </label>
+            <input type="text" id="studentNameInput" class="form-control" placeholder="مثال: محمد أحمد إبراهيم خليل" required>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="studentDobInput">تاريخ الميلاد:</label>
+              <input type="date" id="studentDobInput" class="form-control">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="studentAjzaInput">عدد الأجزاء المنجزة سابقاً:</label>
+              <input type="number" id="studentAjzaInput" class="form-control" min="0" max="30" placeholder="0">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="studentNationalIdInput">رقم الهوية الوطنية:</label>
+              <input type="text" id="studentNationalIdInput" class="form-control" placeholder="رقم هوية الطالب">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="studentFatherIdInput">رقم هوية الأب:</label>
+              <input type="text" id="studentFatherIdInput" class="form-control" placeholder="رقم هوية الأب">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">رقم الجوال / واتساب:</label>
+            <div class="input-with-prefix">
+              <select id="studentCountryCodeSelect" class="form-control" style="font-family: monospace;">
+                <option value="+970">+970</option>
+                <option value="+972">+972</option>
+              </select>
+              <input type="tel" id="studentPhoneInput" class="form-control" placeholder="مثال: 599123456">
+            </div>
+            <div class="form-help">اختر المفتاح (+970 أو +972) واكتب رقم الهاتف ليعمل زر الواتساب والاتصال بسلاسة.</div>
+          </div>
+
+          <div class="form-section-title">
+            <span>💳</span> البيانات المالية والمحفظة
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="studentWalletTypeSelect">نوع المحفظة أو الحساب:</label>
+              <select id="studentWalletTypeSelect" class="form-control">
+                <option value="palpay">بال باي (PalPay)</option>
+                <option value="jawwal_pay">جوال باي (Jawwal Pay)</option>
+                <option value="bank">حساب بنكي</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="studentWalletNumberInput">رقم المحفظة أو الحساب:</label>
+              <input type="text" id="studentWalletNumberInput" class="form-control" placeholder="رقم المحفظة أو الآيبان">
+            </div>
+          </div>
+
+          <div class="form-section-title">
+            <span>📍</span> بيانات السكن وولي الأمر
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="studentGuardianInput">اسم ولي الأمر / المعيل:</label>
+              <input type="text" id="studentGuardianInput" class="form-control" placeholder="اسم ولي الأمر">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="studentResidenceInput">مكان السكن / العنوان:</label>
+              <input type="text" id="studentResidenceInput" class="form-control" placeholder="مثال: غزة - الرمال">
+            </div>
+          </div>
+
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" data-close-modal="studentModal">إلغاء</button>
+          <button type="submit" class="btn-primary" id="btnSaveStudent">حفظ بيانات الطالب</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 2. نافذة ملف الطالب الكامل (Profile Modal) -->
+  <div id="profileModal" class="modal-backdrop">
+    <div class="modal-dialog" style="max-width: 720px;">
+      <div class="modal-header">
+        <h3>
+          <span>👤</span> ملف الطالب الكامل
+        </h3>
+        <button class="modal-close-btn" data-close-modal="profileModal">✕</button>
+      </div>
+      <div class="modal-body" id="profileModalContent">
+        <!-- يتم حقن التفاصيل ديناميكياً عبر JS -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" id="btnDeleteStudentFromProfile" class="btn-danger" style="margin-left: auto;">
+          <span>🗑️</span> حذف الطالب
+        </button>
+        <button type="button" id="btnEditStudentFromProfile" class="btn-secondary">
+          <span>✏️</span> تعديل البيانات
+        </button>
+        <button type="button" class="btn-primary" data-close-modal="profileModal">إغلاق</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. نافذة تسجيل الحفظ والمراجعة (Memorization & Revision Modal) -->
+  <div id="recitationModal" class="modal-backdrop">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3>
+          <span>📖</span> تسجيل الحفظ والمراجعة
+        </h3>
+        <button class="modal-close-btn" data-close-modal="recitationModal">✕</button>
+      </div>
+      <form id="recitationForm">
+        <input type="hidden" id="recitationStudentId">
+        <div class="modal-body">
+          <div class="form-group">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+              <span id="recitationStudentNameBadge" style="font-size: 1.1rem; font-weight: 800; color: var(--primary);">الطالب</span>
+              <span id="recitationAbsenceWarning" style="display: none; font-size: 0.8rem; color: var(--danger); font-weight: 700;">⚠️ مسجل غائباً اليوم (سيتم تحويله لحاضر تلقائياً)</span>
+            </div>
+            <label class="form-label" for="recitationDateInput">تاريخ الجلسة:</label>
+            <input type="date" id="recitationDateInput" class="form-control" required>
+          </div>
+
+          <!-- قسم الحفظ الجديد -->
+          <div class="form-section-title">
+            <span>✨</span> الحفظ الجديد (اختياري)
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="memoFromSurahSelect">من سورة:</label>
+              <select id="memoFromSurahSelect" class="form-control"></select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="memoFromPageInput">صفحة البداية:</label>
+              <input type="number" id="memoFromPageInput" class="form-control" placeholder="رقم الصفحة">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="memoToSurahSelect">إلى سورة:</label>
+              <select id="memoToSurahSelect" class="form-control"></select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="memoToPageInput">صفحة النهاية:</label>
+              <input type="number" id="memoToPageInput" class="form-control" placeholder="رقم الصفحة">
+            </div>
+          </div>
+
+          <!-- قسم المراجعة -->
+          <div class="form-section-title">
+            <span>🔄</span> المراجعة (اختياري)
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="revFromSurahSelect">من سورة:</label>
+              <select id="revFromSurahSelect" class="form-control"></select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="revFromPageInput">صفحة البداية:</label>
+              <input type="number" id="revFromPageInput" class="form-control" placeholder="رقم الصفحة">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="revToSurahSelect">إلى سورة:</label>
+              <select id="revToSurahSelect" class="form-control"></select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="revToPageInput">صفحة النهاية:</label>
+              <input type="number" id="revToPageInput" class="form-control" placeholder="رقم الصفحة">
+            </div>
+          </div>
+
+          <div class="form-help" style="margin-top: 0.5rem;">
+            * يرجى إدخال الحفظ الجديد أو المراجعة (قسم واحد على الأقل مطلوب لحفظ التسميع). يتم تقييد الصفحات بنطاق السورة المحددة.
+          </div>
+
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" data-close-modal="recitationModal">إلغاء</button>
+          <button type="submit" class="btn-primary" id="btnSaveRecitation">حفظ التسميع فوراً</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 4. نافذة تسجيل غياب اليوم (Attendance Modal) -->
+  <div id="attendanceModal" class="modal-backdrop">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3>
+          <span>📋</span> رصد الحضور والغياب
+        </h3>
+        <button class="modal-close-btn" data-close-modal="attendanceModal">✕</button>
+      </div>
+      <div class="modal-body">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-bottom: 1rem;">
+          <div style="flex: 1;">
+            <label class="form-label" for="attendanceDateInput">تاريخ الرصد:</label>
+            <input type="date" id="attendanceDateInput" class="form-control">
+          </div>
+          <button type="button" id="btnResetAttendanceDateToToday" class="btn-secondary" style="margin-top: 1.6rem; min-height: 48px;">اليوم</button>
+        </div>
+
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.75rem;">
+          <span style="font-size: 0.85rem; color: var(--text-muted);">انقر على اسم الطالب لتغيير حالته (حاضر / غائب):</span>
+          <button type="button" id="btnToggleAllAttendance" class="btn-secondary" style="padding: 0.3rem 0.75rem; font-size: 0.8rem; min-height: 34px;">
+            تحديد الكل كغائبين
+          </button>
+        </div>
+
+        <div id="attendanceStudentsList" class="attendance-students-list">
+          <!-- قائمة الطلاب تُنشأ برمجياً -->
+        </div>
+
+        <div style="display: flex; justify-content: space-around; background: var(--bg-glass-input); padding: 0.75rem; border-radius: var(--radius-md); font-size: 0.9rem; font-weight: 700;">
+          <span style="color: var(--primary);">حاضر: <span id="attendanceModalPresentCount">0</span></span>
+          <span style="color: var(--danger);">غائب: <span id="attendanceModalAbsentCount">0</span></span>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" data-close-modal="attendanceModal">إلغاء</button>
+        <button type="button" id="btnSaveAttendance" class="btn-primary">حفظ وتثبيت الغياب</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5-أ. نافذة تعديل ورد التلقين -->
+  <div id="talqeenModal" class="modal-backdrop">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="talqeenModalTitle">
+          <span>✨</span> تعديل ورد التلقين
+        </h3>
+        <button class="modal-close-btn" data-close-modal="talqeenModal">✕</button>
+      </div>
+      <form id="talqeenForm">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" for="talqeenDateInput">تاريخ المقرر:</label>
+            <input type="date" id="talqeenDateInput" class="form-control" required>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="talqeenSurahSelect">السورة المقررة:</label>
+              <select id="talqeenSurahSelect" class="form-control" required></select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="talqeenPageInput">رقم الصفحة في المصحف:</label>
+              <input type="number" id="talqeenPageInput" class="form-control" min="1" max="604" placeholder="1 - 604" required>
+            </div>
+          </div>
+          <div class="form-help">يتم تقييد رقم الصفحة تلقائياً بالنطاق الحقيقي لصفحات السورة في مصحف المدينة.</div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" data-close-modal="talqeenModal">إلغاء</button>
+          <button type="submit" class="btn-primary" id="btnSaveTalqeen">تثبيت ورد التلقين</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 5-ب. نافذة تعديل درس الوعظ والإيمان -->
+  <div id="wadhModal" class="modal-backdrop">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="wadhModalTitle">
+          <span>💡</span> تعديل درس الوعظ والإيمان
+        </h3>
+        <button class="modal-close-btn" data-close-modal="wadhModal">✕</button>
+      </div>
+      <form id="wadhForm">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" for="wadhDateInput">تاريخ الدرس:</label>
+            <input type="date" id="wadhDateInput" class="form-control" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="wadhTitleInput">
+              <span class="required-star">*</span> عنوان وموضوع الدرس:
+            </label>
+            <input type="text" id="wadhTitleInput" class="form-control" placeholder="مثال: فضل بر الوالدين وحفظ الأمانة" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="wadhPageInput">رقم الصفحة أو المرجع (اختياري):</label>
+            <input type="text" id="wadhPageInput" class="form-control" placeholder="مثال: ص 14 أو كتاب رياض الصالحين">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" data-close-modal="wadhModal">إلغاء</button>
+          <button type="submit" class="btn-primary" id="btnSaveWadh">تثبيت درس الوعظ</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 6. نافذة تسجيل اختبار جديد -->
+  <div id="examModal" class="modal-backdrop">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3>
+          <span>🎓</span> تسجيل اختبار جديد
+        </h3>
+        <button class="modal-close-btn" data-close-modal="examModal">✕</button>
+      </div>
+      <form id="examForm">
+        <input type="hidden" id="examStudentId">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" for="examNameInput">
+              <span class="required-star">*</span> مسمى الاختبار / الجزء:
+            </label>
+            <input type="text" id="examNameInput" class="form-control" placeholder="مثال: جزء عم، 5 أجزاء، اختبار شهري" required>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="examDateInput">تاريخ الاختبار:</label>
+              <input type="date" id="examDateInput" class="form-control" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="examResultInput">النتيجة أو التقدير:</label>
+              <input type="text" id="examResultInput" class="form-control" placeholder="مثال: ممتاز 98% أو مجتاز" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="examNotesInput">ملاحظات المعلم وتوجيهات التجويد (اختياري):</label>
+            <textarea id="examNotesInput" class="form-control" rows="3" placeholder="ملاحظات حول أحكام النون الساكنة والمدود..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" data-close-modal="examModal">إلغاء</button>
+          <button type="submit" class="btn-primary" id="btnSaveExam">حفظ الاختبار</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 7. نافذة النسخ الاحتياطي وإدارة البيانات -->
+  <div id="backupModal" class="modal-backdrop">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3>
+          <span>💾</span> إدارة البيانات والنسخ الاحتياطي
+        </h3>
+        <button class="modal-close-btn" data-close-modal="backupModal">✕</button>
+      </div>
+      <div class="modal-body">
+        
+        <!-- بطاقة التصدير -->
+        <div style="background: var(--bg-glass-input); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1.25rem; margin-bottom: 1.25rem;">
+          <h4 style="font-size: 1.05rem; font-weight: 800; color: var(--primary); margin-bottom: 0.4rem;">
+            📥 تصدير نسخة احتياطية (Export Backup)
+          </h4>
+          <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.9rem;">
+            تنزيل ملف بصيغة (JSON) يحمل كافة بيانات الطلاب، الحفظ، المراجعة، الحضور، والمقررات لحمايتها من الضياع أو نقلها لجهاز آخر.
+          </p>
+          <button type="button" id="btnExportJson" class="btn-primary" style="width: 100%;">
+            <span>📥</span> تحميل ملف النسخة الاحتياطية الآن
+          </button>
+        </div>
+
+        <!-- بطاقة الاستعادة -->
+        <div style="background: var(--bg-glass-input); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1.25rem; margin-bottom: 1.25rem;">
+          <h4 style="font-size: 1.05rem; font-weight: 800; color: var(--gold); margin-bottom: 0.4rem;">
+            📤 استعادة البيانات من ملف (Import Backup)
+          </h4>
+          <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.9rem;">
+            اختر ملف نسخة احتياطية سبق تصديره لاستعادة كافة البيانات فورياً.
+          </p>
+          <input type="file" id="importJsonFileInput" accept=".json" style="display: none;">
+          <button type="button" id="btnTriggerImportFile" class="btn-secondary" style="width: 100%;">
+            <span>📂</span> اختيار ملف النسخة الاحتياطية (.json)
+          </button>
+        </div>
+
+        <!-- بطاقة ضبط المصنع والتفريغ الآمن -->
+        <div style="background: var(--danger-subtle); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: var(--radius-md); padding: 1.25rem;">
+          <h4 style="font-size: 1rem; font-weight: 800; color: var(--danger); margin-bottom: 0.4rem;">
+            ⚠️ إعادة تعيين بيانات الحلقة بالكامل
+          </h4>
+          <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+            حذف كافة الطلاب والسجلات والبدء من جديد. تأكد من تحميل نسخة احتياطية أولاً!
+          </p>
+          <button type="button" id="btnResetAllData" class="btn-danger" style="width: 100%; min-height: 42px; font-size: 0.88rem;">
+            <span>🗑️</span> مسح كافة البيانات وبدء حلقة جديدة
+          </button>
+        </div>
+
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-primary" data-close-modal="backupModal">إغلاق</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8. نافذة التأكيد الآمن للحذف (Safe Confirmation Modal) -->
+  <div id="confirmModal" class="modal-backdrop">
+    <div class="modal-dialog" style="max-width: 440px;">
+      <div class="modal-header">
+        <h3 id="confirmModalTitle" style="color: var(--danger);">
+          <span>⚠️</span> تأكيد الإجراء
+        </h3>
+        <button class="modal-close-btn" data-close-modal="confirmModal">✕</button>
+      </div>
+      <div class="modal-body">
+        <p id="confirmModalMessage" style="font-size: 0.95rem; font-weight: 600; line-height: 1.6;">
+          هل أنت متأكد من تنفيذ هذا الإجراء؟ لا يمكن التراجع عن هذه الخطوة.
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" data-close-modal="confirmModal">إلغاء</button>
+        <button type="button" id="btnConfirmAction" class="btn-danger">تأكيد الحذف</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- حاوية الإشعارات المنبثقة الحية (Toasts) -->
+  <div id="toastContainer" class="toast-container" aria-live="polite"></div>
+
+  <!-- ربط السكربتات البرمجية -->
+  <script src="js/quran-data.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

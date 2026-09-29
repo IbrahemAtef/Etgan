@@ -1,0 +1,21 @@
+{
+  "name": "إِتْقَانْ - إدارة حلقات القرآن الكريم",
+  "short_name": "إِتْقَانْ",
+  "description": "نظام متكامل لإدارة حلقات تحفيظ القرآن الكريم ومتابعة الحفظ والمراجعة والغياب بدون إنترنت",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#070b0e",
+  "theme_color": "#070b0e",
+  "dir": "rtl",
+  "lang": "ar",
+  "icons": [
+    {
+      "src": "./assets/favicon.svg",
+      "sizes": "192x192 512x512 any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["education", "productivity"]
+}
