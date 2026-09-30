@@ -2,7 +2,7 @@
  * «إِتْقَانْ» - عامل الخدمة للعمل أوفلاين بنسبة 100% (Service Worker)
  */
 
-const CACHE_NAME = "etgan-pwa-v3";
+const CACHE_NAME = "etgan-pwa-v9";
 const STATIC_ASSETS = [
   "./",
   "./index.html",

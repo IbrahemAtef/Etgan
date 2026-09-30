@@ -13,50 +13,80 @@
 </head>
 <body>
 
-  <!-- تنبيه تذكير النسخ الاحتياطي (يظهر بعد 30 يوماً من آخر تصدير) -->
-  <div id="backupReminderBanner" class="backup-reminder-banner" style="display: none;">
-    <div class="backup-reminder-text">
-      <span>💾</span>
-      <span id="backupReminderMsg">تذكير: لم تقم بتصدير نسخة احتياطية لبيانات الحلقة منذ أكثر من 30 يوماً!</span>
-    </div>
-    <div style="display: flex; gap: 0.5rem; align-items: center;">
-      <button id="btnQuickBackup" class="btn-primary" style="padding: 0.4rem 0.9rem; font-size: 0.85rem; min-height: 38px;">تصدير نسخة احتياطية الآن</button>
-      <button id="btnDismissBackupReminder" class="icon-btn" style="width: 38px; height: 38px; font-size: 1rem;" title="إغلاق">✕</button>
-    </div>
-  </div>
 
   <div class="app-container">
     
-    <!-- ===================== الترويسة العلوية ===================== -->
+    <!-- ===================== الترويسة العلوية الملكية (Ultra-Luxury Navbar) ===================== -->
     <header class="app-header">
       <div class="brand-section">
-        <div class="brand-icon" title="إتقان">
-          <span>📖</span>
+        <div class="brand-icon-wrapper" title="إتقان | نظام إدارة حلقات تحفيظ القرآن الكريم">
+          <div class="brand-icon-glow"></div>
+          <div class="brand-icon">
+            <svg class="brand-quran-svg" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M16 26.5C14.2 24.8 11.5 24 8.5 24C6.2 24 4.1 24.5 2.5 25.4V6.2C4.1 5.3 6.2 4.8 8.5 4.8C11.5 4.8 14.2 5.6 16 7.3C17.8 5.6 20.5 4.8 23.5 4.8C25.8 4.8 27.9 5.3 29.5 6.2V25.4C27.9 24.5 25.8 24 23.5 24C20.5 24 17.8 24.8 16 26.5Z" fill="url(#quranGrad)" stroke="url(#goldRimGrad)" stroke-width="1.6" stroke-linejoin="round"/>
+              <path d="M16 7.5V26" stroke="url(#goldRimGrad)" stroke-width="1.6" stroke-linecap="round"/>
+              <path d="M7 11H12M7 15H11M20 11H25M21 15H25" stroke="rgba(255,255,255,0.75)" stroke-width="1.3" stroke-linecap="round"/>
+              <defs>
+                <linearGradient id="quranGrad" x1="2" y1="4.8" x2="29.5" y2="26.5" gradientUnits="userSpaceOnUse">
+                  <stop stop-color="#10b981"/>
+                  <stop offset="0.5" stop-color="#059669"/>
+                  <stop offset="1" stop-color="#047857"/>
+                </linearGradient>
+                <linearGradient id="goldRimGrad" x1="2" y1="4.8" x2="29.5" y2="26.5" gradientUnits="userSpaceOnUse">
+                  <stop stop-color="#fbbf24"/>
+                  <stop offset="0.5" stop-color="#f59e0b"/>
+                  <stop offset="1" stop-color="#d97706"/>
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
         </div>
+
         <div class="brand-info">
-          <h1>
-            إِتْـقَـانْ
-            <span class="app-badge">حلقة القرآن</span>
-          </h1>
-          <div class="current-date" id="currentDateDisplay">جاري التحميل...</div>
+          <div class="brand-title-row">
+            <h1 class="brand-title">إِتْـقَـانْ</h1>
+            <span class="app-badge">
+              <span class="badge-star">✦</span>
+              <span>حلقة القرآن</span>
+            </span>
+          </div>
+          <div class="current-date-row">
+            <svg class="date-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="16" y1="2" x2="16" y2="6"></line>
+              <line x1="8" y1="2" x2="8" y2="6"></line>
+              <line x1="3" y1="10" x2="21" y2="10"></line>
+            </svg>
+            <span class="current-date" id="currentDateDisplay">جاري التحميل...</span>
+          </div>
         </div>
       </div>
 
       <div class="header-actions">
-        <!-- شارة الاتصال بالأوفلاين -->
-        <div class="status-badge online" id="networkStatusBadge" title="حالة الاتصال">
-          <span class="dot"></span>
-          <span id="networkStatusText">يعمل بدون إنترنت</span>
+        <!-- شارة الاتصال بالأوفلاين النابضة بالرادار -->
+        <div class="status-badge online" id="networkStatusBadge" title="حالة الاتصال والعمل بدون إنترنت">
+          <span class="radar-dot">
+            <span class="radar-wave"></span>
+            <span class="radar-core"></span>
+          </span>
+          <span id="networkStatusText" class="status-text">يعمل بدون إنترنت</span>
         </div>
 
-        <!-- زر التبديل بين الوضع الليلي والنهاري -->
-        <button id="themeToggleBtn" class="icon-btn" title="تبديل المظهر (ليلي / نهاري)">
-          <span id="themeToggleIcon">🌙</span>
+        <!-- زر التبديل بين الوضع الليلي والنهاري (شمس وقمر SVG ناعم) -->
+        <button id="themeToggleBtn" class="icon-btn theme-toggle-btn" title="تبديل المظهر (ليلي / نهاري)" aria-label="تبديل المظهر">
+          <span id="themeToggleIcon" class="theme-icon-container">
+            <svg class="theme-svg moon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </svg>
+          </span>
         </button>
 
         <!-- زر الرجوع إلى الحلقة عند التواجد في شاشة السجل -->
-        <button id="btnBackToRing" class="icon-btn" style="display: none;" title="العودة للحلقة الرئيسية">
-          <span>🏠</span>
+        <button id="btnBackToRing" class="icon-btn back-btn" style="display: none;" title="العودة للحلقة الرئيسية" aria-label="العودة للحلقة الرئيسية">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+            <polyline points="9 22 9 12 15 12 15 22"></polyline>
+          </svg>
         </button>
       </div>
     </header>
@@ -78,8 +108,8 @@
             </div>
             <div class="session-content">
               <div class="session-main-text" id="talqeenSurahDisplay">سورة الفاتحة</div>
-              <div class="session-sub-text" id="talqeenPageDisplay">
-                <span>📄</span> صفحة: 1 في المصحف الشريف
+              <div class="session-sub-text" id="talqeenAyatDisplay">
+                <span>📜</span> الآيات: من 1 إلى 7 (كاملة)
               </div>
             </div>
           </div>
@@ -117,8 +147,27 @@
 
       <!-- 2. شبكة الإجراءات السريعة -->
       <section class="quick-actions-grid" aria-label="إجراءات سريعة">
-        <button id="btnOpenAttendanceModal" class="action-btn primary-action">
-          <div class="action-icon">📋</div>
+        <button id="btnOpenAddStudentModal" class="action-btn primary-action">
+          <div class="action-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+          </div>
+          <div class="action-text">
+            <strong>إضافة طالب جديد</strong>
+            <span>تسجيل بيانات طالب في الحلقة</span>
+          </div>
+        </button>
+
+        <button id="btnOpenAttendanceModal" class="action-btn">
+          <div class="action-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+              <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+              <path d="m9 14 2 2 4-4"></path>
+            </svg>
+          </div>
           <div class="action-text">
             <strong>تسجيل غياب اليوم</strong>
             <span>رصد سريع للحضور والغياب</span>
@@ -126,23 +175,28 @@
         </button>
 
         <button id="btnOpenHistoryView" class="action-btn">
-          <div class="action-icon">🗂️</div>
+          <div class="action-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="16" y1="2" x2="16" y2="6"></line>
+              <line x1="8" y1="2" x2="8" y2="6"></line>
+              <line x1="3" y1="10" x2="21" y2="10"></line>
+            </svg>
+          </div>
           <div class="action-text">
             <strong>سجل الأيام السابقة</strong>
             <span>مراجعة المقررات والحضور السابق</span>
           </div>
         </button>
 
-        <button id="btnOpenAddStudentModal" class="action-btn">
-          <div class="action-icon">➕</div>
-          <div class="action-text">
-            <strong>إضافة طالب جديد</strong>
-            <span>تسجيل بيانات طالب في الحلقة</span>
-          </div>
-        </button>
-
         <button id="btnOpenBackupModal" class="action-btn">
-          <div class="action-icon">💾</div>
+          <div class="action-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+              <polyline points="17 21 17 13 7 13 7 21"></polyline>
+              <polyline points="7 3 7 8 15 8"></polyline>
+            </svg>
+          </div>
           <div class="action-text">
             <strong>النسخ الاحتياطي</strong>
             <span>تصدير واستعادة ملفات البيانات</span>
@@ -335,9 +389,27 @@
               <input type="date" id="studentDobInput" class="form-control">
             </div>
             <div class="form-group">
-              <label class="form-label" for="studentAjzaInput">عدد الأجزاء المنجزة سابقاً:</label>
-              <input type="number" id="studentAjzaInput" class="form-control" min="0" max="30" placeholder="0">
+              <label class="form-label">منهج وترتيب الحفظ:</label>
+              <div class="order-radio-group">
+                <label class="order-radio-card active" id="labelOrderNas">
+                  <input type="radio" name="studentMemorizationOrder" id="orderNasToFatiha" value="nas_to_fatiha" checked>
+                  <div class="order-radio-content">
+                    <span class="order-title">من الناس إلى الفاتحة <span>(مستحسن)</span></span>
+                    <span class="order-desc">جزء عمّ ثم تبارك صعوداً</span>
+                  </div>
+                </label>
+                <label class="order-radio-card" id="labelOrderFatiha">
+                  <input type="radio" name="studentMemorizationOrder" id="orderFatihaToNas" value="fatiha_to_nas">
+                  <div class="order-radio-content">
+                    <span class="order-title">من الفاتحة إلى الناس</span>
+                    <span class="order-desc">الترتيب المصحفي من البقرة نزولاً</span>
+                  </div>
+                </label>
+              </div>
             </div>
+          </div>
+          <div class="form-help" style="margin-top: -0.25rem; margin-bottom: 0.8rem;">
+            💡 يتم احتساب الأجزاء المنجزة ونسبة التقدم تلقائياً بناءً على هذا الترتيب ومواضع التسميع المسجلة للطالب.
           </div>
 
           <div class="form-row">
@@ -354,11 +426,11 @@
           <div class="form-group">
             <label class="form-label">رقم الجوال / واتساب:</label>
             <div class="input-with-prefix">
+              <input type="tel" id="studentPhoneInput" class="form-control" placeholder="مثال: 599123456">
               <select id="studentCountryCodeSelect" class="form-control" style="font-family: monospace;">
                 <option value="+970">+970</option>
                 <option value="+972">+972</option>
               </select>
-              <input type="tel" id="studentPhoneInput" class="form-control" placeholder="مثال: 599123456">
             </div>
             <div class="form-help">اختر المفتاح (+970 أو +972) واكتب رقم الهاتف ليعمل زر الواتساب والاتصال بسلاسة.</div>
           </div>
@@ -456,53 +528,59 @@
             <span>✨</span> الحفظ الجديد (اختياري)
           </div>
           <div class="form-row">
-            <div class="form-group">
-              <label class="form-label" for="memoFromSurahSelect">من سورة:</label>
-              <select id="memoFromSurahSelect" class="form-control"></select>
+            <div class="form-group" style="flex: 1.4;">
+              <label class="form-label" for="memoSurahSelect">السورة:</label>
+              <select id="memoSurahSelect" class="form-control"></select>
             </div>
-            <div class="form-group">
-              <label class="form-label" for="memoFromPageInput">صفحة البداية:</label>
-              <input type="number" id="memoFromPageInput" class="form-control" placeholder="رقم الصفحة">
+            <div class="form-group" style="flex: 1.1;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                <label class="form-label" style="margin-bottom: 0;">نطاق الآيات:</label>
+                <button type="button" id="btnMemoFullSurah" class="btn-quick-chip">كامل السورة</button>
+              </div>
+              <div class="ayah-range-inputs">
+                <div class="ayah-input-wrapper">
+                  <span class="ayah-input-tag">من آية</span>
+                  <input type="number" id="memoFromAyahInput" class="form-control" min="1" placeholder="1">
+                </div>
+                <div class="ayah-input-wrapper">
+                  <span class="ayah-input-tag">إلى آية</span>
+                  <input type="number" id="memoToAyahInput" class="form-control" min="1" placeholder="إلى">
+                </div>
+              </div>
             </div>
           </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label" for="memoToSurahSelect">إلى سورة:</label>
-              <select id="memoToSurahSelect" class="form-control"></select>
-            </div>
-            <div class="form-group">
-              <label class="form-label" for="memoToPageInput">صفحة النهاية:</label>
-              <input type="number" id="memoToPageInput" class="form-control" placeholder="رقم الصفحة">
-            </div>
-          </div>
+          <div id="memoAyahHelper" class="form-help ayah-helper-badge">اختر السورة لعرض عدد آياتها وتحديد النطاق بدقة.</div>
 
           <!-- قسم المراجعة -->
-          <div class="form-section-title">
+          <div class="form-section-title" style="margin-top: 1.25rem;">
             <span>🔄</span> المراجعة (اختياري)
           </div>
           <div class="form-row">
-            <div class="form-group">
-              <label class="form-label" for="revFromSurahSelect">من سورة:</label>
-              <select id="revFromSurahSelect" class="form-control"></select>
+            <div class="form-group" style="flex: 1.4;">
+              <label class="form-label" for="revSurahSelect">السورة:</label>
+              <select id="revSurahSelect" class="form-control"></select>
             </div>
-            <div class="form-group">
-              <label class="form-label" for="revFromPageInput">صفحة البداية:</label>
-              <input type="number" id="revFromPageInput" class="form-control" placeholder="رقم الصفحة">
+            <div class="form-group" style="flex: 1.1;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                <label class="form-label" style="margin-bottom: 0;">نطاق الآيات:</label>
+                <button type="button" id="btnRevFullSurah" class="btn-quick-chip">كامل السورة</button>
+              </div>
+              <div class="ayah-range-inputs">
+                <div class="ayah-input-wrapper">
+                  <span class="ayah-input-tag">من آية</span>
+                  <input type="number" id="revFromAyahInput" class="form-control" min="1" placeholder="1">
+                </div>
+                <div class="ayah-input-wrapper">
+                  <span class="ayah-input-tag">إلى آية</span>
+                  <input type="number" id="revToAyahInput" class="form-control" min="1" placeholder="إلى">
+                </div>
+              </div>
             </div>
           </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label" for="revToSurahSelect">إلى سورة:</label>
-              <select id="revToSurahSelect" class="form-control"></select>
-            </div>
-            <div class="form-group">
-              <label class="form-label" for="revToPageInput">صفحة النهاية:</label>
-              <input type="number" id="revToPageInput" class="form-control" placeholder="رقم الصفحة">
-            </div>
-          </div>
+          <div id="revAyahHelper" class="form-help ayah-helper-badge">اختر السورة لعرض عدد آياتها وتحديد النطاق بدقة.</div>
 
-          <div class="form-help" style="margin-top: 0.5rem;">
-            * يرجى إدخال الحفظ الجديد أو المراجعة (قسم واحد على الأقل مطلوب لحفظ التسميع). يتم تقييد الصفحات بنطاق السورة المحددة.
+          <div class="form-help" style="margin-top: 0.8rem;">
+            * يرجى إدخال الحفظ الجديد أو المراجعة (قسم واحد على الأقل مطلوب لحفظ التسميع). يتم تقييد الآيات تلقائياً بنطاق السورة المحددة.
           </div>
 
         </div>
@@ -572,16 +650,28 @@
           </div>
 
           <div class="form-row">
-            <div class="form-group">
+            <div class="form-group" style="flex: 1.4;">
               <label class="form-label" for="talqeenSurahSelect">السورة المقررة:</label>
               <select id="talqeenSurahSelect" class="form-control" required></select>
             </div>
-            <div class="form-group">
-              <label class="form-label" for="talqeenPageInput">رقم الصفحة في المصحف:</label>
-              <input type="number" id="talqeenPageInput" class="form-control" min="1" max="604" placeholder="1 - 604" required>
+            <div class="form-group" style="flex: 1.1;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                <label class="form-label" style="margin-bottom: 0;">نطاق الآيات المقررة:</label>
+                <button type="button" id="btnTalqeenFullSurah" class="btn-quick-chip">كامل السورة</button>
+              </div>
+              <div class="ayah-range-inputs">
+                <div class="ayah-input-wrapper">
+                  <span class="ayah-input-tag">من آية</span>
+                  <input type="number" id="talqeenFromAyahInput" class="form-control" min="1" placeholder="1" required>
+                </div>
+                <div class="ayah-input-wrapper">
+                  <span class="ayah-input-tag">إلى آية</span>
+                  <input type="number" id="talqeenToAyahInput" class="form-control" min="1" placeholder="إلى" required>
+                </div>
+              </div>
             </div>
           </div>
-          <div class="form-help">يتم تقييد رقم الصفحة تلقائياً بالنطاق الحقيقي لصفحات السورة في مصحف المدينة.</div>
+          <div id="talqeenAyahHelper" class="form-help ayah-helper-badge">اختر السورة لتحديد نطاق الآيات تلقائياً.</div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn-secondary" data-close-modal="talqeenModal">إلغاء</button>

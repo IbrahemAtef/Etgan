@@ -81,16 +81,29 @@ class StorageManager {
       // تعديل طالب موجود
       const index = students.findIndex(s => s.id === studentData.id);
       if (index !== -1) {
+        const order = studentData.memorizationOrder || students[index].memorizationOrder || "nas_to_fatiha";
         students[index] = {
           ...students[index],
           ...studentData,
+          memorizationOrder: order,
           updatedAt: new Date().toISOString()
         };
+
+        // إعادة احتساب تقدم الأجزاء فورياً وفق المنهج المختار
+        if (Array.isArray(students[index].dailyLogs) && window.QuranData) {
+          const progress = window.QuranData.calculateStudentJuzProgress(students[index].dailyLogs, order);
+          students[index].completedAjza = progress.completedAjza;
+          students[index].currentJuzNumber = progress.currentJuzNumber;
+          students[index].currentJuzProgressPercent = progress.currentJuzProgressPercent;
+          students[index].furthestPointText = progress.furthestPointText;
+        }
+        studentData = students[index];
       } else {
         students.push(studentData);
       }
     } else {
       // إضافة طالب جديد
+      const order = studentData.memorizationOrder || "nas_to_fatiha";
       const newStudent = {
         id: "std_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7),
         name: studentData.name ? studentData.name.trim() : "",
@@ -103,7 +116,11 @@ class StorageManager {
         walletNumber: studentData.walletNumber ? studentData.walletNumber.trim() : "",
         guardianName: studentData.guardianName ? studentData.guardianName.trim() : "",
         residence: studentData.residence ? studentData.residence.trim() : "",
-        completedAjza: parseInt(studentData.completedAjza, 10) || 0,
+        memorizationOrder: order,
+        completedAjza: 0,
+        currentJuzNumber: (order === "fatiha_to_nas" ? 1 : 30),
+        currentJuzProgressPercent: 0,
+        furthestPointText: "لم يبدأ بعد",
         createdAt: new Date().toISOString(),
         dailyLogs: [],
         exams: []
@@ -168,12 +185,16 @@ class StorageManager {
     return map[date];
   }
 
-  saveTalqeenForDate(date, { surahName, pageNumber }) {
+  saveTalqeenForDate(date, { surahName, fromAyah, toAyah, pageNumber }) {
     const map = this.getDailySessionsMap();
+    const fAyah = parseInt(fromAyah, 10) || 1;
+    const tAyah = parseInt(toAyah, 10) || fAyah;
     map[date] = {
       ...(map[date] || {}),
       surahName: surahName,
-      pageNumber: pageNumber,
+      fromAyah: fAyah,
+      toAyah: tAyah,
+      pageNumber: pageNumber || null,
       date: date,
       updatedAt: new Date().toISOString()
     };
@@ -203,7 +224,9 @@ class StorageManager {
         records.push({
           date: date,
           surahName: item.surahName,
-          pageNumber: item.pageNumber || 1,
+          fromAyah: item.fromAyah || 1,
+          toAyah: item.toAyah || item.fromAyah || 1,
+          pageNumber: item.pageNumber || null,
           updatedAt: item.updatedAt
         });
       }
@@ -362,18 +385,27 @@ class StorageManager {
     const targetDate = logData.date;
     const logIndex = student.dailyLogs.findIndex(l => l.date === targetDate);
 
+    const fAyahMemo = logData.memoFromAyah ? parseInt(logData.memoFromAyah, 10) : null;
+    const tAyahMemo = logData.memoToAyah ? parseInt(logData.memoToAyah, 10) : fAyahMemo;
+
+    const fAyahRev = logData.revFromAyah ? parseInt(logData.revFromAyah, 10) : null;
+    const tAyahRev = logData.revToAyah ? parseInt(logData.revToAyah, 10) : fAyahRev;
+
     const newEntry = {
       id: (logIndex !== -1 && student.dailyLogs[logIndex].id) ? student.dailyLogs[logIndex].id : ("log_" + Date.now() + "_" + Math.random().toString(36).substring(2, 6)),
       date: targetDate,
       isAbsent: false, // تحويل فوري لحاضر
-      memoFromSurah: logData.memoFromSurah || "",
-      memoFromPage: logData.memoFromPage ? parseInt(logData.memoFromPage, 10) : null,
-      memoToSurah: logData.memoToSurah || "",
-      memoToPage: logData.memoToPage ? parseInt(logData.memoToPage, 10) : null,
-      revFromSurah: logData.revFromSurah || "",
-      revFromPage: logData.revFromPage ? parseInt(logData.revFromPage, 10) : null,
-      revToSurah: logData.revToSurah || "",
-      revToPage: logData.revToPage ? parseInt(logData.revToPage, 10) : null,
+      memoSurah: logData.memoSurah || logData.memoFromSurah || "",
+      memoFromAyah: fAyahMemo,
+      memoToAyah: tAyahMemo,
+      revSurah: logData.revSurah || logData.revFromSurah || "",
+      revFromAyah: fAyahRev,
+      revToAyah: tAyahRev,
+      // دعم الحقول القديمة للحفاظ على البيانات السابقة
+      memoFromSurah: logData.memoSurah || logData.memoFromSurah || "",
+      memoToSurah: logData.memoSurah || logData.memoToSurah || "",
+      revFromSurah: logData.revSurah || logData.revFromSurah || "",
+      revToSurah: logData.revSurah || logData.revToSurah || "",
       updatedAt: new Date().toISOString()
     };
 
@@ -385,6 +417,16 @@ class StorageManager {
 
     // ترتيب السجلات تنازلياً
     student.dailyLogs.sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+
+    // إعادة احتساب الأجزاء المنجزة ونسبة التقدم تلقائياً للطالب
+    if (window.QuranData) {
+      const order = student.memorizationOrder || "nas_to_fatiha";
+      const progress = window.QuranData.calculateStudentJuzProgress(student.dailyLogs, order);
+      student.completedAjza = progress.completedAjza;
+      student.currentJuzNumber = progress.currentJuzNumber;
+      student.currentJuzProgressPercent = progress.currentJuzProgressPercent;
+      student.furthestPointText = progress.furthestPointText;
+    }
 
     // تحديث مصفوفة الطلاب
     localStorage.setItem(STORAGE_KEYS.STUDENTS, JSON.stringify(students));
@@ -406,6 +448,17 @@ class StorageManager {
     if (!student || !Array.isArray(student.dailyLogs)) return false;
 
     student.dailyLogs = student.dailyLogs.filter(l => l.id !== logId);
+
+    // إعادة احتساب الأجزاء المنجزة بعد الحذف
+    if (window.QuranData) {
+      const order = student.memorizationOrder || "nas_to_fatiha";
+      const progress = window.QuranData.calculateStudentJuzProgress(student.dailyLogs, order);
+      student.completedAjza = progress.completedAjza;
+      student.currentJuzNumber = progress.currentJuzNumber;
+      student.currentJuzProgressPercent = progress.currentJuzProgressPercent;
+      student.furthestPointText = progress.furthestPointText;
+    }
+
     localStorage.setItem(STORAGE_KEYS.STUDENTS, JSON.stringify(students));
     return true;
   }

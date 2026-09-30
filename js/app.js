@@ -36,7 +36,6 @@ document.addEventListener("DOMContentLoaded", () => {
   initSurahDropdowns();
   loadInitialData();
   bindEvents();
-  checkBackupAlert();
 
   // ==========================================================================
   // 3. إدارة وتنسيق التواريخ (Date Formatting: DD/MM/YYYY)
@@ -89,6 +88,13 @@ document.addEventListener("DOMContentLoaded", () => {
     if (wadhBadge) wadhBadge.textContent = formatDateDDMMYYYY(state.today);
   }
 
+  function updateThemeMetaColor(isLight) {
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) {
+      meta.setAttribute("content", isLight ? "#f8fafc" : "#070b0e");
+    }
+  }
+
   function initTheme() {
     const settings = window.storageManager.getSettings();
     const isLight = settings.theme === "light";
@@ -98,15 +104,28 @@ document.addEventListener("DOMContentLoaded", () => {
       document.body.classList.remove("theme-light");
     }
     updateThemeIcon(isLight);
+    updateThemeMetaColor(isLight);
 
     state.viewMode = settings.viewMode || "full";
     applyViewMode(state.viewMode);
   }
 
   function updateThemeIcon(isLight) {
-    const icon = document.getElementById("themeToggleIcon");
-    if (icon) {
-      icon.textContent = isLight ? "☀️" : "🌙";
+    const iconContainer = document.getElementById("themeToggleIcon");
+    if (!iconContainer) return;
+    if (isLight) {
+      iconContainer.innerHTML = `
+        <svg class="theme-svg sun-svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="4"></circle>
+          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path>
+        </svg>
+      `;
+    } else {
+      iconContainer.innerHTML = `
+        <svg class="theme-svg moon-svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+        </svg>
+      `;
     }
   }
 
@@ -115,6 +134,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const newTheme = isNowLight ? "light" : "dark";
     window.storageManager.saveSettings({ theme: newTheme });
     updateThemeIcon(isNowLight);
+    updateThemeMetaColor(isNowLight);
     showToast(isNowLight ? "تم تفعيل الوضع النهاري" : "تم تفعيل الوضع الليلي الملكي", "info");
   }
 
@@ -172,38 +192,25 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ==========================================================================
-  // 5. تهيئة قوائم السور القرانية والتقييد الصارم للصفحات
+  // 5. تهيئة قوائم السور القرانية وضبط نطاقات الآيات تلقائياً
   // ==========================================================================
   function initSurahDropdowns() {
-    const selectIds = [
-      "talqeenSurahSelect",
-      "memoFromSurahSelect",
-      "memoToSurahSelect",
-      "revFromSurahSelect",
-      "revToSurahSelect"
+    const selects = [
+      { id: "talqeenSurahSelect", from: "talqeenFromAyahInput", to: "talqeenToAyahInput", helper: "talqeenAyahHelper", fullBtn: "btnTalqeenFullSurah" },
+      { id: "memoSurahSelect", from: "memoFromAyahInput", to: "memoToAyahInput", helper: "memoAyahHelper", fullBtn: "btnMemoFullSurah" },
+      { id: "revSurahSelect", from: "revFromAyahInput", to: "revToAyahInput", helper: "revAyahHelper", fullBtn: "btnRevFullSurah" }
     ];
 
-    selectIds.forEach(id => {
-      const el = document.getElementById(id);
-      if (el) {
-        window.QuranData.populateSurahSelect(el, "", "اختر السورة...");
+    selects.forEach(item => {
+      const sel = document.getElementById(item.id);
+      if (sel) {
+        window.QuranData.populateSurahSelect(sel, "", "اختر السورة...");
+        const fromInp = document.getElementById(item.from);
+        const toInp = document.getElementById(item.to);
+        const helperEl = document.getElementById(item.helper);
+        const fullBtn = document.getElementById(item.fullBtn);
+        window.QuranData.applyAyahConstraints(sel, fromInp, toInp, helperEl, fullBtn);
       }
-    });
-
-    bindSurahPageConstraint("talqeenSurahSelect", "talqeenPageInput");
-    bindSurahPageConstraint("memoFromSurahSelect", "memoFromPageInput");
-    bindSurahPageConstraint("memoToSurahSelect", "memoToPageInput");
-    bindSurahPageConstraint("revFromSurahSelect", "revFromPageInput");
-    bindSurahPageConstraint("revToSurahSelect", "revToPageInput");
-  }
-
-  function bindSurahPageConstraint(selectId, inputId) {
-    const sel = document.getElementById(selectId);
-    const inp = document.getElementById(inputId);
-    if (!sel || !inp) return;
-
-    sel.addEventListener("change", () => {
-      window.QuranData.applyPageConstraints(sel, inp);
     });
   }
 
@@ -221,14 +228,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // بطاقة التلقين
     const talqeenSurahEl = document.getElementById("talqeenSurahDisplay");
-    const talqeenPageEl = document.getElementById("talqeenPageDisplay");
-    if (talqeenSurahEl && talqeenPageEl) {
+    const talqeenAyatEl = document.getElementById("talqeenAyatDisplay") || document.getElementById("talqeenPageDisplay");
+    if (talqeenSurahEl && talqeenAyatEl) {
       if (session.surahName) {
+        const surah = window.QuranData.getSurahByName(session.surahName);
+        const fAyah = session.fromAyah || 1;
+        const tAyah = session.toAyah || fAyah;
+        const isFull = (surah && fAyah === 1 && tAyah === surah.ayat);
         talqeenSurahEl.textContent = `سورة ${session.surahName}`;
-        talqeenPageEl.innerHTML = `<span>📄</span> صفحة: ${session.pageNumber || "1"} في المصحف الشريف`;
+        talqeenAyatEl.innerHTML = `<span>📜</span> الآيات: من ${fAyah} إلى ${tAyah} ${isFull ? '(كاملة)' : ''}`;
       } else {
         talqeenSurahEl.textContent = "سورة الفاتحة";
-        talqeenPageEl.innerHTML = `<span>📄</span> صفحة: 1 في المصحف الشريف`;
+        talqeenAyatEl.innerHTML = `<span>📜</span> الآيات: من 1 إلى 7 (كاملة)`;
       }
     }
 
@@ -337,7 +348,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     container.innerHTML = filteredStudents.map(student => {
       const isAbsent = absentSet.has(student.id);
-      const hasRecitedToday = Array.isArray(student.dailyLogs) && student.dailyLogs.some(l => l.date === state.today && !l.isAbsent && (l.memoFromSurah || l.revFromSurah));
+      const hasRecitedToday = Array.isArray(student.dailyLogs) && student.dailyLogs.some(l => l.date === state.today && !l.isAbsent && (l.memoSurah || l.memoFromSurah || l.revSurah || l.revFromSurah));
 
       let cardStatusClass = "is-present";
       let statusTagHtml = '<span class="status-tag tag-present">حاضر ✓</span>';
@@ -365,23 +376,46 @@ document.addEventListener("DOMContentLoaded", () => {
         } else {
           let memoPart = "";
           let revPart = "";
-          if (latestLog.memoFromSurah) {
-            memoPart = `حفظ: ${latestLog.memoFromSurah} (${latestLog.memoFromPage || 1} إلى ${latestLog.memoToPage || latestLog.memoFromPage || 1})`;
+
+          const mSurah = latestLog.memoSurah || latestLog.memoFromSurah;
+          if (mSurah) {
+            if (latestLog.memoFromAyah) {
+              const surahObj = window.QuranData.getSurahByName(mSurah);
+              const fA = latestLog.memoFromAyah;
+              const tA = latestLog.memoToAyah || fA;
+              const isFull = (surahObj && fA === 1 && tA === surahObj.ayat);
+              memoPart = `سورة ${mSurah} (${isFull ? 'كاملة' : `الآيات ${fA} - ${tA}`})`;
+            } else {
+              memoPart = `سورة ${mSurah} (ص ${latestLog.memoFromPage || 1})`;
+            }
           }
-          if (latestLog.revFromSurah) {
-            revPart = `مراجعة: ${latestLog.revFromSurah} (${latestLog.revFromPage || 1} إلى ${latestLog.revToPage || latestLog.revFromPage || 1})`;
+
+          const rSurah = latestLog.revSurah || latestLog.revFromSurah;
+          if (rSurah) {
+            if (latestLog.revFromAyah) {
+              const surahObj = window.QuranData.getSurahByName(rSurah);
+              const fA = latestLog.revFromAyah;
+              const tA = latestLog.revToAyah || fA;
+              const isFull = (surahObj && fA === 1 && tA === surahObj.ayat);
+              revPart = `سورة ${rSurah} (${isFull ? 'كاملة' : `الآيات ${fA} - ${tA}`})`;
+            } else {
+              revPart = `سورة ${rSurah} (ص ${latestLog.revFromPage || 1})`;
+            }
           }
+
           recitationSummaryHtml = `
             <div class="recitation-summary-line">
               <span class="summary-label">آخر جلسة (${formattedLogDate}):</span>
             </div>
-            ${memoPart ? `<div class="recitation-summary-line"><span class="summary-label">الحفظ:</span> <span class="summary-value">${memoPart.replace('حفظ: ', '')}</span></div>` : ''}
-            ${revPart ? `<div class="recitation-summary-line"><span class="summary-label">المراجعة:</span> <span class="summary-value">${revPart.replace('مراجعة: ', '')}</span></div>` : ''}
+            ${memoPart ? `<div class="recitation-summary-line"><span class="summary-label">الحفظ:</span> <span class="summary-value">${memoPart}</span></div>` : ''}
+            ${revPart ? `<div class="recitation-summary-line"><span class="summary-label">المراجعة:</span> <span class="summary-value">${revPart}</span></div>` : ''}
           `;
         }
       }
 
       const initialChar = student.name ? student.name.trim().charAt(0) : "ط";
+      const currentJuzNum = student.currentJuzNumber || (student.memorizationOrder === 'fatiha_to_nas' ? 1 : 30);
+      const progressPercent = typeof student.currentJuzProgressPercent === 'number' ? student.currentJuzProgressPercent : 0;
 
       return `
         <article class="student-card ${cardStatusClass}" data-student-id="${student.id}">
@@ -395,6 +429,16 @@ document.addEventListener("DOMContentLoaded", () => {
                   ${statusTagHtml}
                 </div>
               </div>
+            </div>
+          </div>
+
+          <div class="student-progress-box">
+            <div class="student-progress-labels">
+              <span class="progress-juz-title">الجزء ${currentJuzNum}</span>
+              <span class="progress-percent-val">${progressPercent}%</span>
+            </div>
+            <div class="juz-progress-bar">
+              <div class="juz-progress-fill" style="width: ${progressPercent}%;"></div>
             </div>
           </div>
 
@@ -464,13 +508,30 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             let descParts = [];
-            if (log.memoFromSurah) {
-              const toPart = (log.memoToSurah && log.memoToSurah !== log.memoFromSurah) ? ` إلى ${log.memoToSurah}` : "";
-              descParts.push(`<strong>حفظ:</strong> ${log.memoFromSurah} (ص ${log.memoFromPage || 1})${toPart ? `${toPart} (ص ${log.memoToPage || 1})` : (log.memoToPage && log.memoToPage !== log.memoFromPage ? ` إلى ص ${log.memoToPage}` : '')}`);
+            const mSurah = log.memoSurah || log.memoFromSurah;
+            if (mSurah) {
+              let details = "";
+              if (log.memoFromAyah) {
+                const surahObj = window.QuranData.getSurahByName(mSurah);
+                const isFull = (surahObj && log.memoFromAyah === 1 && log.memoToAyah === surahObj.ayat);
+                details = isFull ? "(كاملة)" : `(الآيات ${log.memoFromAyah} - ${log.memoToAyah || log.memoFromAyah})`;
+              } else {
+                details = `(ص ${log.memoFromPage || 1})`;
+              }
+              descParts.push(`<strong>حفظ:</strong> سورة ${mSurah} ${details}`);
             }
-            if (log.revFromSurah) {
-              const toPart = (log.revToSurah && log.revToSurah !== log.revFromSurah) ? ` إلى ${log.revToSurah}` : "";
-              descParts.push(`<strong>مراجعة:</strong> ${log.revFromSurah} (ص ${log.revFromPage || 1})${toPart ? `${toPart} (ص ${log.revToPage || 1})` : (log.revToPage && log.revToPage !== log.revFromPage ? ` إلى ص ${log.revToPage}` : '')}`);
+
+            const rSurah = log.revSurah || log.revFromSurah;
+            if (rSurah) {
+              let details = "";
+              if (log.revFromAyah) {
+                const surahObj = window.QuranData.getSurahByName(rSurah);
+                const isFull = (surahObj && log.revFromAyah === 1 && log.revToAyah === surahObj.ayat);
+                details = isFull ? "(كاملة)" : `(الآيات ${log.revFromAyah} - ${log.revToAyah || log.revFromAyah})`;
+              } else {
+                details = `(ص ${log.revFromPage || 1})`;
+              }
+              descParts.push(`<strong>مراجعة:</strong> سورة ${rSurah} ${details}`);
             }
 
             return `
@@ -526,6 +587,30 @@ document.addEventListener("DOMContentLoaded", () => {
             <span class="ajza-badge">الأجزاء المنجزة: ${student.completedAjza || 0}</span>
             <span class="status-tag tag-present">تاريخ التسجيل: ${formatDateDDMMYYYY(student.createdAt)}</span>
           </div>
+        </div>
+      </div>
+
+      <!-- بطاقة تقدم الحفظ التلقائي -->
+      <div class="profile-progress-widget">
+        <div class="widget-top-row">
+          <div>
+            <div class="widget-main-stat">
+              ${student.completedAjza || 0} <span>أجزاء مكتملة من 30</span>
+            </div>
+            <div class="widget-furthest-line">
+              أين وصل الطالب: <strong>${escapeHtml(student.furthestPointText || "لم يبدأ بعد")}</strong>
+            </div>
+          </div>
+          <span class="widget-order-badge">
+            ${student.memorizationOrder === "fatiha_to_nas" ? "من الفاتحة للناس" : "من الناس للفاتحة"}
+          </span>
+        </div>
+        <div class="student-progress-labels" style="margin-top: 0.75rem;">
+          <span class="progress-juz-title">الجزء الجاري: ${student.currentJuzNumber || (student.memorizationOrder === 'fatiha_to_nas' ? 1 : 30)}</span>
+          <span class="progress-percent-val">${student.currentJuzProgressPercent || 0}%</span>
+        </div>
+        <div class="juz-progress-bar" style="height: 8px;">
+          <div class="juz-progress-fill" style="width: ${student.currentJuzProgressPercent || 0}%;"></div>
         </div>
       </div>
 
@@ -688,6 +773,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const titleEl = document.getElementById("studentModalTitle");
     const editIdEl = document.getElementById("studentEditId");
 
+    const orderNasRadio = document.getElementById("orderNasToFatiha");
+    const orderFatihaRadio = document.getElementById("orderFatihaToNas");
+    const labelNas = document.getElementById("labelOrderNas");
+    const labelFatiha = document.getElementById("labelOrderFatiha");
+
     if (studentId) {
       const student = window.storageManager.getStudentById(studentId);
       if (!student) return;
@@ -697,7 +787,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
       document.getElementById("studentNameInput").value = student.name || "";
       document.getElementById("studentDobInput").value = student.dob || "";
-      document.getElementById("studentAjzaInput").value = student.completedAjza || 0;
       document.getElementById("studentNationalIdInput").value = student.nationalId || "";
       document.getElementById("studentFatherIdInput").value = student.fatherId || "";
       document.getElementById("studentCountryCodeSelect").value = student.countryCode || "+970";
@@ -706,11 +795,26 @@ document.addEventListener("DOMContentLoaded", () => {
       document.getElementById("studentWalletNumberInput").value = student.walletNumber || "";
       document.getElementById("studentGuardianInput").value = student.guardianName || "";
       document.getElementById("studentResidenceInput").value = student.residence || "";
+
+      const order = student.memorizationOrder || "nas_to_fatiha";
+      if (order === "fatiha_to_nas") {
+        if (orderFatihaRadio) orderFatihaRadio.checked = true;
+        if (labelFatiha) labelFatiha.classList.add("active");
+        if (labelNas) labelNas.classList.remove("active");
+      } else {
+        if (orderNasRadio) orderNasRadio.checked = true;
+        if (labelNas) labelNas.classList.add("active");
+        if (labelFatiha) labelFatiha.classList.remove("active");
+      }
     } else {
       if (titleEl) titleEl.innerHTML = '<span>➕</span> إضافة طالب جديد';
       if (editIdEl) editIdEl.value = "";
       const defaultSettings = window.storageManager.getSettings();
       document.getElementById("studentCountryCodeSelect").value = defaultSettings.defaultCountryCode || "+970";
+
+      if (orderNasRadio) orderNasRadio.checked = true;
+      if (labelNas) labelNas.classList.add("active");
+      if (labelFatiha) labelFatiha.classList.remove("active");
     }
 
     openModal("studentModal");
@@ -725,11 +829,14 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     const editId = document.getElementById("studentEditId").value;
+    const orderRadio = document.querySelector('input[name="studentMemorizationOrder"]:checked');
+    const memorizationOrder = orderRadio ? orderRadio.value : "nas_to_fatiha";
+
     const studentData = {
       id: editId || undefined,
       name: name,
       dob: document.getElementById("studentDobInput").value,
-      completedAjza: parseInt(document.getElementById("studentAjzaInput").value, 10) || 0,
+      memorizationOrder: memorizationOrder,
       nationalId: document.getElementById("studentNationalIdInput").value.trim(),
       fatherId: document.getElementById("studentFatherIdInput").value.trim(),
       countryCode: document.getElementById("studentCountryCodeSelect").value,
@@ -742,7 +849,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     window.storageManager.saveStudent(studentData);
     closeModal("studentModal");
-    showToast(editId ? "تم تحديث بيانات الطالب بنجاح" : "تمت إضافة الطالب للحلقة بنجاح", "success");
+    showToast(editId ? "تم تحديث بيانات الطالب بنجاح" : "تمت إضافة الطالب وتفعيل احتساب الأجزاء بنجاح", "success");
 
     renderStudentsList();
     updateLiveStats();
@@ -775,15 +882,24 @@ document.addEventListener("DOMContentLoaded", () => {
       checkRecitationAbsenceWarning(studentId, dateInput.value);
     };
 
-    ["memoFrom", "memoTo", "revFrom", "revTo"].forEach(prefix => {
-      const sel = document.getElementById(`${prefix}SurahSelect`);
-      const inp = document.getElementById(`${prefix}PageInput`);
-      if (sel && inp) {
-        sel.value = "";
-        inp.value = "";
-        inp.placeholder = "رقم الصفحة";
-      }
-    });
+    // إعادة ضبط حقول الحفظ والمراجعة
+    const memoSel = document.getElementById("memoSurahSelect");
+    const memoFromInp = document.getElementById("memoFromAyahInput");
+    const memoToInp = document.getElementById("memoToAyahInput");
+    const memoHelper = document.getElementById("memoAyahHelper");
+    if (memoSel) memoSel.value = "";
+    if (memoFromInp) { memoFromInp.value = ""; memoFromInp.placeholder = "من"; }
+    if (memoToInp) { memoToInp.value = ""; memoToInp.placeholder = "إلى"; }
+    if (memoHelper) memoHelper.textContent = "اختر السورة لعرض عدد آياتها وتحديد النطاق بدقة.";
+
+    const revSel = document.getElementById("revSurahSelect");
+    const revFromInp = document.getElementById("revFromAyahInput");
+    const revToInp = document.getElementById("revToAyahInput");
+    const revHelper = document.getElementById("revAyahHelper");
+    if (revSel) revSel.value = "";
+    if (revFromInp) { revFromInp.value = ""; revFromInp.placeholder = "من"; }
+    if (revToInp) { revToInp.value = ""; revToInp.placeholder = "إلى"; }
+    if (revHelper) revHelper.textContent = "اختر السورة لعرض عدد آياتها وتحديد النطاق بدقة.";
 
     openModal("recitationModal");
   }
@@ -802,39 +918,55 @@ document.addEventListener("DOMContentLoaded", () => {
     const studentId = document.getElementById("recitationStudentId").value;
     const date = document.getElementById("recitationDateInput").value;
 
-    const memoFromSurah = document.getElementById("memoFromSurahSelect").value;
-    const memoFromPage = document.getElementById("memoFromPageInput").value;
-    const memoToSurah = document.getElementById("memoToSurahSelect").value;
-    const memoToPage = document.getElementById("memoToPageInput").value;
+    const memoSurah = document.getElementById("memoSurahSelect").value;
+    let memoFromAyah = parseInt(document.getElementById("memoFromAyahInput").value, 10);
+    let memoToAyah = parseInt(document.getElementById("memoToAyahInput").value, 10);
 
-    const revFromSurah = document.getElementById("revFromSurahSelect").value;
-    const revFromPage = document.getElementById("revFromPageInput").value;
-    const revToSurah = document.getElementById("revToSurahSelect").value;
-    const revToPage = document.getElementById("revToPageInput").value;
+    const revSurah = document.getElementById("revSurahSelect").value;
+    let revFromAyah = parseInt(document.getElementById("revFromAyahInput").value, 10);
+    let revToAyah = parseInt(document.getElementById("revToAyahInput").value, 10);
 
-    const hasMemo = memoFromSurah || memoFromPage;
-    const hasRev = revFromSurah || revFromPage;
+    const hasMemo = Boolean(memoSurah);
+    const hasRev = Boolean(revSurah);
 
     if (!hasMemo && !hasRev) {
       showToast("يرجى إدخال الحفظ الجديد أو المراجعة (قسم واحد على الأقل مطلوب لحفظ التسميع)", "error");
       return;
     }
 
+    if (hasMemo) {
+      const surahObj = window.QuranData.getSurahByName(memoSurah);
+      const maxAyat = surahObj ? surahObj.ayat : 286;
+      if (!memoFromAyah || memoFromAyah < 1) memoFromAyah = 1;
+      if (!memoToAyah) memoToAyah = memoFromAyah;
+      if (memoFromAyah > maxAyat) memoFromAyah = maxAyat;
+      if (memoToAyah > maxAyat) memoToAyah = maxAyat;
+      if (memoToAyah < memoFromAyah) memoToAyah = memoFromAyah;
+    }
+
+    if (hasRev) {
+      const surahObj = window.QuranData.getSurahByName(revSurah);
+      const maxAyat = surahObj ? surahObj.ayat : 286;
+      if (!revFromAyah || revFromAyah < 1) revFromAyah = 1;
+      if (!revToAyah) revToAyah = revFromAyah;
+      if (revFromAyah > maxAyat) revFromAyah = maxAyat;
+      if (revToAyah > maxAyat) revToAyah = maxAyat;
+      if (revToAyah < revFromAyah) revToAyah = revFromAyah;
+    }
+
     const logData = {
       date: date,
-      memoFromSurah: memoFromSurah,
-      memoFromPage: memoFromPage,
-      memoToSurah: memoToSurah || memoFromSurah,
-      memoToPage: memoToPage || memoFromPage,
-      revFromSurah: revFromSurah,
-      revFromPage: revFromPage,
-      revToSurah: revToSurah || revFromSurah,
-      revToPage: revToPage || revFromPage
+      memoSurah: hasMemo ? memoSurah : "",
+      memoFromAyah: hasMemo ? memoFromAyah : null,
+      memoToAyah: hasMemo ? memoToAyah : null,
+      revSurah: hasRev ? revSurah : "",
+      revFromAyah: hasRev ? revFromAyah : null,
+      revToAyah: hasRev ? revToAyah : null
     };
 
     window.storageManager.saveStudentDailyLog(studentId, logData);
     closeModal("recitationModal");
-    showToast("تم توثيق التسميع وتحديث حالة الطالب بنجاح ✓", "success");
+    showToast("تم توثيق التسميع وتحديث حالة الطالب والأجزاء تلقائياً ✓", "success");
 
     renderStudentsList();
     updateLiveStats();
@@ -946,11 +1078,20 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("talqeenDateInput").value = date;
 
     const surahSel = document.getElementById("talqeenSurahSelect");
-    const pageInp = document.getElementById("talqeenPageInput");
-    if (surahSel && pageInp) {
+    const fromInp = document.getElementById("talqeenFromAyahInput");
+    const toInp = document.getElementById("talqeenToAyahInput");
+    const helperEl = document.getElementById("talqeenAyahHelper");
+    const fullBtn = document.getElementById("btnTalqeenFullSurah");
+
+    if (surahSel && fromInp && toInp) {
       surahSel.value = session.surahName || "الفاتحة";
-      pageInp.value = session.pageNumber || "1";
-      window.QuranData.applyPageConstraints(surahSel, pageInp);
+      const surahObj = window.QuranData.getSurahByName(surahSel.value);
+      const totalAyat = surahObj ? surahObj.ayat : 7;
+      fromInp.value = session.fromAyah || 1;
+      toInp.value = session.toAyah || totalAyat;
+      if (window.QuranData.applyAyahConstraints) {
+        window.QuranData.applyAyahConstraints(surahSel, fromInp, toInp, helperEl, fullBtn);
+      }
     }
 
     openModal("talqeenModal");
@@ -960,11 +1101,20 @@ document.addEventListener("DOMContentLoaded", () => {
     e.preventDefault();
     const date = document.getElementById("talqeenDateInput").value;
     const surahName = document.getElementById("talqeenSurahSelect").value;
-    const pageNumber = parseInt(document.getElementById("talqeenPageInput").value, 10) || 1;
+    let fromAyah = parseInt(document.getElementById("talqeenFromAyahInput").value, 10) || 1;
+    let toAyah = parseInt(document.getElementById("talqeenToAyahInput").value, 10) || fromAyah;
+
+    const surahObj = window.QuranData.getSurahByName(surahName);
+    const maxAyat = surahObj ? surahObj.ayat : 286;
+    if (fromAyah < 1) fromAyah = 1;
+    if (fromAyah > maxAyat) fromAyah = maxAyat;
+    if (toAyah > maxAyat) toAyah = maxAyat;
+    if (toAyah < fromAyah) toAyah = fromAyah;
 
     window.storageManager.saveTalqeenForDate(date, {
       surahName: surahName,
-      pageNumber: pageNumber
+      fromAyah: fromAyah,
+      toAyah: toAyah
     });
 
     closeModal("talqeenModal");
@@ -1154,7 +1304,7 @@ document.addEventListener("DOMContentLoaded", () => {
             <div class="history-day-content">
               <div class="content-item">
                 <span style="color: var(--primary); font-weight: 700;">✨ ورد التلقين:</span>
-                <span>${summary.session.surahName ? `سورة ${summary.session.surahName} (ص ${summary.session.pageNumber || 1})` : "غير مسجل"}</span>
+                <span>${summary.session.surahName ? `سورة ${summary.session.surahName} (الآيات ${summary.session.fromAyah || 1} - ${summary.session.toAyah || summary.session.fromAyah || 1})` : "غير مسجل"}</span>
               </div>
               <div class="content-item">
                 <span style="color: var(--gold); font-weight: 700;">💡 درس الوعظ:</span>
@@ -1222,23 +1372,27 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    container.innerHTML = records.map(item => `
-      <article class="archive-item-card talqeen-item">
-        <div>
-          <div class="archive-item-top">
-            <span class="archive-date-badge">📅 ${escapeHtml(formatDateDDMMYYYY(item.date, true))}</span>
-            <span class="status-tag tag-present">ورد تلقين</span>
+    container.innerHTML = records.map(item => {
+      const surahObj = window.QuranData.getSurahByName(item.surahName);
+      const isFull = (surahObj && item.fromAyah === 1 && item.toAyah === surahObj.ayat);
+      return `
+        <article class="archive-item-card talqeen-item">
+          <div>
+            <div class="archive-item-top">
+              <span class="archive-date-badge">📅 ${escapeHtml(formatDateDDMMYYYY(item.date, true))}</span>
+              <span class="status-tag tag-present">ورد تلقين</span>
+            </div>
+            <div class="archive-item-title">سورة ${escapeHtml(item.surahName)}</div>
+            <div class="archive-item-subtitle">📜 الآيات: <strong>${item.fromAyah || 1}</strong> إلى <strong>${item.toAyah || item.fromAyah || 1}</strong> ${isFull ? '(كاملة)' : ''}</div>
           </div>
-          <div class="archive-item-title">سورة ${escapeHtml(item.surahName)}</div>
-          <div class="archive-item-subtitle">📄 صفحة: <strong>${item.pageNumber || 1}</strong> في المصحف الشريف</div>
-        </div>
-        <div class="history-card-actions" style="margin-top: 1rem;">
-          <button class="btn-card-action" data-edit-talqeen-date="${item.date}">
-            <span>✏️</span> تعديل التلقين
-          </button>
-        </div>
-      </article>
-    `).join("");
+          <div class="history-card-actions" style="margin-top: 1rem;">
+            <button class="btn-card-action" data-edit-talqeen-date="${item.date}">
+              <span>✏️</span> تعديل التلقين
+            </button>
+          </div>
+        </article>
+      `;
+    }).join("");
 
     container.querySelectorAll("[data-edit-talqeen-date]").forEach(btn => {
       btn.addEventListener("click", () => {
@@ -1366,23 +1520,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // ==========================================================================
-  // 15. النسخ الاحتياطي وأمان البيانات
-  // ==========================================================================
-  function checkBackupAlert() {
-    const status = window.storageManager.checkBackupReminder();
-    const banner = document.getElementById("backupReminderBanner");
-    const msg = document.getElementById("backupReminderMsg");
 
-    if (banner && status.shouldRemind) {
-      banner.style.display = "flex";
-      if (status.neverBackedUp) {
-        msg.textContent = "تنبيه مهم: لم تقم بتصدير نسخة احتياطية للحلقة بعد! يُرجى تصدير نسخة لحفظ إنجازات الطلاب.";
-      } else {
-        msg.textContent = `تذكير دوري: مرت ${status.days} يوماً منذ آخر نسخة احتياطية للحلقة. حمّل نسخة جديدة لسلامة البيانات.`;
-      }
-    }
-  }
 
   function handleExportBackup() {
     window.storageManager.exportDataAsJSON();
@@ -1550,6 +1688,19 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("wadhForm").addEventListener("submit", handleWadhFormSubmit);
     document.getElementById("examForm").addEventListener("submit", handleExamFormSubmit);
 
+    // بطاقات خيار ترتيب الحفظ
+    document.querySelectorAll('input[name="studentMemorizationOrder"]').forEach(radio => {
+      radio.addEventListener("change", () => {
+        const isNas = (radio.value === "nas_to_fatiha");
+        const labelNas = document.getElementById("labelOrderNas");
+        const labelFatiha = document.getElementById("labelOrderFatiha");
+        if (labelNas && labelFatiha) {
+          labelNas.classList.toggle("active", isNas);
+          labelFatiha.classList.toggle("active", !isNas);
+        }
+      });
+    });
+
     // إجراءات الحضور
     document.getElementById("btnSaveAttendance").addEventListener("click", handleSaveAttendance);
     document.getElementById("btnResetAttendanceDateToToday").addEventListener("click", () => {
@@ -1624,10 +1775,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // النسخ الاحتياطي
     document.getElementById("btnExportJson").addEventListener("click", handleExportBackup);
-    document.getElementById("btnQuickBackup").addEventListener("click", handleExportBackup);
-    document.getElementById("btnDismissBackupReminder").addEventListener("click", () => {
-      document.getElementById("backupReminderBanner").style.display = "none";
-    });
 
     const fileInput = document.getElementById("importJsonFileInput");
     document.getElementById("btnTriggerImportFile").addEventListener("click", () => {
