@@ -161,8 +161,18 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ==========================================================================
-  // 4. تشغيل PWA والاتصال (PWA & Offline Connectivity)
+  // 4. تشغيل PWA والتثبيت والاتصال (PWA & Offline Connectivity)
   // ==========================================================================
+  let deferredInstallPrompt = null;
+
+  function isAppInstalled() {
+    return (
+      window.matchMedia('(display-mode: standalone)').matches ||
+      window.navigator.standalone === true ||
+      document.referrer.includes('android-app://')
+    );
+  }
+
   function initPwaAndNetwork() {
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("./sw.js").then(reg => {
@@ -189,6 +199,112 @@ document.addEventListener("DOMContentLoaded", () => {
     window.addEventListener("online", updateOnlineStatus);
     window.addEventListener("offline", updateOnlineStatus);
     updateOnlineStatus();
+
+    setupPwaInstallation();
+  }
+
+  function setupPwaInstallation() {
+    const isInstalled = isAppInstalled();
+    const btnHeaderInstall = document.getElementById("btnHeaderInstallApp");
+
+    if (isInstalled) {
+      if (btnHeaderInstall) btnHeaderInstall.style.display = "none";
+      return;
+    }
+
+    // التطبيق غير مثبت: إظهار زر التثبيت في الترويسة
+    if (btnHeaderInstall) {
+      btnHeaderInstall.style.display = "flex";
+      btnHeaderInstall.addEventListener("click", () => openPwaInstallModal(true));
+    }
+
+    // رصد حدث التثبيت المتاح
+    window.addEventListener("beforeinstallprompt", (e) => {
+      e.preventDefault();
+      deferredInstallPrompt = e;
+      if (btnHeaderInstall) btnHeaderInstall.style.display = "flex";
+      checkAndShowInstallModal();
+    });
+
+    // رصد نجاح التثبيت
+    window.addEventListener("appinstalled", () => {
+      deferredInstallPrompt = null;
+      if (btnHeaderInstall) btnHeaderInstall.style.display = "none";
+      closeModal("pwaInstallModal");
+      showToast("تهانينا! تم تثبيت تطبيق إتقان على جهازك بنجاح 🎉", "success");
+    });
+
+    // فحص بيئة iOS Safari
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    if (isIOS) {
+      const iosGuide = document.getElementById("iosInstallGuide");
+      const btnConfirm = document.getElementById("btnConfirmInstallApp");
+      if (iosGuide) iosGuide.style.display = "block";
+      if (btnConfirm) btnConfirm.style.display = "none";
+    }
+
+    // زر التثبيت داخل النافذة
+    const btnConfirmInstall = document.getElementById("btnConfirmInstallApp");
+    if (btnConfirmInstall) {
+      btnConfirmInstall.addEventListener("click", handleInstallAppClick);
+    }
+
+    // زري إغلاق وتأجيل التثبيت
+    const markDismissed = () => {
+      localStorage.setItem("etgan_install_dismissed_at", Date.now().toString());
+    };
+    const btnDismiss = document.getElementById("btnDismissInstall");
+    if (btnDismiss) {
+      btnDismiss.addEventListener("click", markDismissed);
+    }
+    const btnDismissTop = document.getElementById("btnDismissInstallTop");
+    if (btnDismissTop) {
+      btnDismissTop.addEventListener("click", markDismissed);
+    }
+
+    // عرض النافذة المنبثقة تلقائياً بعد مهلة قصيرة إذا لم يكن التطبيق مثبتاً
+    setTimeout(() => {
+      checkAndShowInstallModal();
+    }, 1400);
+  }
+
+  function checkAndShowInstallModal() {
+    if (isAppInstalled()) return;
+
+    // فحص ما إذا كان المستخدم قد قام بتأجيل التثبيت خلال آخر يومين
+    const lastDismissed = localStorage.getItem("etgan_install_dismissed_at");
+    if (lastDismissed) {
+      const daysSince = (Date.now() - parseInt(lastDismissed, 10)) / (1000 * 60 * 60 * 24);
+      if (daysSince < 2) {
+        return;
+      }
+    }
+
+    openPwaInstallModal(false);
+  }
+
+  function openPwaInstallModal(isManual = false) {
+    if (isAppInstalled()) {
+      showToast("تطبيق إتقان مثبت بالفعل على هذا الجهاز ✓", "info");
+      return;
+    }
+    openModal("pwaInstallModal");
+  }
+
+  function handleInstallAppClick() {
+    if (deferredInstallPrompt) {
+      deferredInstallPrompt.prompt();
+      deferredInstallPrompt.userChoice.then((choiceResult) => {
+        if (choiceResult.outcome === "accepted") {
+          showToast("جاري تثبيت تطبيق إتقان...", "info");
+        }
+        deferredInstallPrompt = null;
+        closeModal("pwaInstallModal");
+      });
+    } else {
+      showToast("يمكنك التثبيت من خلال خيارات المتصفح (⋮) أو علامة ⊕ في شريط العنوان", "info");
+      closeModal("pwaInstallModal");
+    }
   }
 
   // ==========================================================================

@@ -7,7 +7,8 @@
   <meta name="description" content="إتقان - نظام إدارة حلقة تحفيظ القرآن الكريم ومتابعة الحفظ والمراجعة والغياب بدون إنترنت (PWA)">
   <title>«إِتْقَانْ» | نظام إدارة حلقات تحفيظ القرآن الكريم</title>
   
-  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+  <link rel="icon" type="image/png" href="assets/Etgan.png">
+  <link rel="apple-touch-icon" href="assets/Etgan.png">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="stylesheet" href="css/style.css">
 </head>
@@ -22,23 +23,7 @@
         <div class="brand-icon-wrapper" title="إتقان | نظام إدارة حلقات تحفيظ القرآن الكريم">
           <div class="brand-icon-glow"></div>
           <div class="brand-icon">
-            <svg class="brand-quran-svg" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M16 26.5C14.2 24.8 11.5 24 8.5 24C6.2 24 4.1 24.5 2.5 25.4V6.2C4.1 5.3 6.2 4.8 8.5 4.8C11.5 4.8 14.2 5.6 16 7.3C17.8 5.6 20.5 4.8 23.5 4.8C25.8 4.8 27.9 5.3 29.5 6.2V25.4C27.9 24.5 25.8 24 23.5 24C20.5 24 17.8 24.8 16 26.5Z" fill="url(#quranGrad)" stroke="url(#goldRimGrad)" stroke-width="1.6" stroke-linejoin="round"/>
-              <path d="M16 7.5V26" stroke="url(#goldRimGrad)" stroke-width="1.6" stroke-linecap="round"/>
-              <path d="M7 11H12M7 15H11M20 11H25M21 15H25" stroke="rgba(255,255,255,0.75)" stroke-width="1.3" stroke-linecap="round"/>
-              <defs>
-                <linearGradient id="quranGrad" x1="2" y1="4.8" x2="29.5" y2="26.5" gradientUnits="userSpaceOnUse">
-                  <stop stop-color="#10b981"/>
-                  <stop offset="0.5" stop-color="#059669"/>
-                  <stop offset="1" stop-color="#047857"/>
-                </linearGradient>
-                <linearGradient id="goldRimGrad" x1="2" y1="4.8" x2="29.5" y2="26.5" gradientUnits="userSpaceOnUse">
-                  <stop stop-color="#fbbf24"/>
-                  <stop offset="0.5" stop-color="#f59e0b"/>
-                  <stop offset="1" stop-color="#d97706"/>
-                </linearGradient>
-              </defs>
-            </svg>
+            <img src="assets/Etgan.png" alt="شعار إتقان" class="brand-app-logo">
           </div>
         </div>
 
@@ -71,6 +56,15 @@
           </span>
           <span id="networkStatusText" class="status-text">يعمل بدون إنترنت</span>
         </div>
+
+        <!-- زر تثبيت التطبيق السريع (يظهر تلقائياً إذا لم يكن التطبيق مثبتاً) -->
+        <button id="btnHeaderInstallApp" class="icon-btn install-header-btn" style="display: none;" title="تثبيت التطبيق على جهازك" aria-label="تثبيت التطبيق">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+        </button>
 
         <!-- زر التبديل بين الوضع الليلي والنهاري (شمس وقمر SVG ناعم) -->
         <button id="themeToggleBtn" class="icon-btn theme-toggle-btn" title="تبديل المظهر (ليلي / نهاري)" aria-label="تبديل المظهر">
@@ -834,6 +828,77 @@
       <div class="modal-footer">
         <button type="button" class="btn-secondary" data-close-modal="confirmModal">إلغاء</button>
         <button type="button" id="btnConfirmAction" class="btn-danger">تأكيد الحذف</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 9. نافذة تثبيت التطبيق الفاخرة (PWA Installation Modal) -->
+  <div id="pwaInstallModal" class="modal-backdrop">
+    <div class="modal-dialog install-dialog" style="max-width: 480px; text-align: center;">
+      <div class="modal-header" style="justify-content: flex-end; border-bottom: none; padding-bottom: 0;">
+        <button class="modal-close-btn" data-close-modal="pwaInstallModal" id="btnDismissInstallTop">✕</button>
+      </div>
+      <div class="modal-body" style="padding-top: 0.5rem; padding-bottom: 1.5rem;">
+        
+        <!-- معاينة الأيقونة الملكية الفاخرة ثلاثية الأبعاد -->
+        <div class="install-icon-wrapper">
+          <div class="install-glow-ring"></div>
+          <img src="assets/Etgan.png" alt="أيقونة تطبيق إتقان" class="install-app-icon">
+        </div>
+
+        <h3 class="install-title">تثبيت تطبيق «إِتْـقَـانْ»</h3>
+        <p class="install-subtitle">نظام إدارة حلقات تحفيظ القرآن الكريم المتكامل</p>
+
+        <!-- قائمة مميزات التطبيق المثبت -->
+        <div class="install-features-list">
+          <div class="install-feature-item">
+            <div class="feature-icon">⚡</div>
+            <div class="feature-text">
+              <strong>وصول سريع بضغطة زر</strong>
+              <span>تطبيق أصيل يعمل مباشرة من الشاشة الرئيسية بدون متصفح</span>
+            </div>
+          </div>
+
+          <div class="install-feature-item">
+            <div class="feature-icon">📶</div>
+            <div class="feature-text">
+              <strong>يعمل 100% بدون إنترنت</strong>
+              <span>حفظ ومراجعة وغياب آمن ومتاح دائماً حتى في وضع الطيران</span>
+            </div>
+          </div>
+
+          <div class="install-feature-item">
+            <div class="feature-icon">🔒</div>
+            <div class="feature-text">
+              <strong>خصوصية وأمان محلي</strong>
+              <span>بيانات حلقتك وطلابك محفوظة بأمان على جهازك الشخصي</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- دليل تثبيت أجهزة iOS في حال كان المستخدم يتصفح من Safari على iPhone/iPad -->
+        <div id="iosInstallGuide" class="ios-install-guide" style="display: none;">
+          <div class="ios-guide-title">
+            <span>📱</span> طريقة التثبيت على أجهزة iPhone و iPad:
+          </div>
+          <ol class="ios-guide-steps">
+            <li>اضغط على زر المشاركة <span class="ios-key-icon">⎋</span> في شريط المتصفح.</li>
+            <li>مرر للأسفل واختر <strong>«إضافة إلى الصفحة الرئيسية»</strong> <span class="ios-key-icon">➕</span>.</li>
+            <li>اضغط على <strong>«إضافة»</strong> (Add) في الزاوية العلوية.</li>
+          </ol>
+        </div>
+
+      </div>
+      <div class="modal-footer" style="justify-content: center; gap: 0.75rem; border-top: none; padding-top: 0;">
+        <button type="button" class="btn-secondary" data-close-modal="pwaInstallModal" id="btnDismissInstall" style="flex: 1; max-width: 140px;">لاحقاً</button>
+        <button type="button" class="btn-primary install-action-btn" id="btnConfirmInstallApp" style="flex: 2;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          <span>تثبيت التطبيق الآن</span>
+        </button>
       </div>
     </div>
   </div>
