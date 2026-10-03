@@ -50,12 +50,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
   /**
    * تحويل التاريخ إلى صيغة يوم/شهر/سنة (DD/MM/YYYY)
-   * مع إمكانية إلحاق اسم اليوم بالعربية
+   * مع إمكانية إلحاق اسم اليوم بالعربية عند الحاجة (مثل الترويسة وبطاقات الأرشيف)
    */
   function formatDateDDMMYYYY(dateStr, includeDayName = false) {
     if (!dateStr) return "";
     try {
-      const cleanDate = dateStr.split("T")[0];
+      const cleanDate = String(dateStr).split("T")[0];
       const parts = cleanDate.split("-");
       if (parts.length === 3) {
         const year = parts[0];
@@ -65,6 +65,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (includeDayName) {
           const d = new Date(parseInt(year, 10), parseInt(month, 10) - 1, parseInt(day, 10));
+          const dayNames = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
+          const dayName = dayNames[d.getDay()] || "";
+          return `${dayName}، ${formattedDate}`;
+        }
+        return formattedDate;
+      }
+
+      const d = new Date(dateStr);
+      if (!isNaN(d.getTime())) {
+        const day = String(d.getDate()).padStart(2, "0");
+        const month = String(d.getMonth() + 1).padStart(2, "0");
+        const year = d.getFullYear();
+        const formattedDate = `${day}/${month}/${year}`;
+        if (includeDayName) {
           const dayNames = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
           const dayName = dayNames[d.getDay()] || "";
           return `${dayName}، ${formattedDate}`;
@@ -82,10 +96,6 @@ document.addEventListener("DOMContentLoaded", () => {
     if (el) {
       el.textContent = formatDateDDMMYYYY(state.today, true);
     }
-    const talqeenBadge = document.getElementById("talqeenDateBadge");
-    if (talqeenBadge) talqeenBadge.textContent = formatDateDDMMYYYY(state.today);
-    const wadhBadge = document.getElementById("wadhDateBadge");
-    if (wadhBadge) wadhBadge.textContent = formatDateDDMMYYYY(state.today);
   }
 
   function updateThemeMetaColor(isLight) {
@@ -334,6 +344,8 @@ document.addEventListener("DOMContentLoaded", () => {
   // 6. تحميل وتحديث بيانات الواجهة
   // ==========================================================================
   function loadInitialData() {
+    // تفعيل الترحيل التلقائي الصامت المستقل لكل بطاقة لليوم الحالي
+    window.storageManager.ensureDailySessionWithCarryOver(state.today);
     renderDailySessions();
     renderStudentsList();
     updateLiveStats();
@@ -345,6 +357,8 @@ document.addEventListener("DOMContentLoaded", () => {
     // بطاقة التلقين
     const talqeenSurahEl = document.getElementById("talqeenSurahDisplay");
     const talqeenAyatEl = document.getElementById("talqeenAyatDisplay") || document.getElementById("talqeenPageDisplay");
+    const talqeenBadgeEl = document.getElementById("talqeenDateBadge");
+
     if (talqeenSurahEl && talqeenAyatEl) {
       if (session.surahName) {
         const surah = window.QuranData.getSurahByName(session.surahName);
@@ -353,22 +367,58 @@ document.addEventListener("DOMContentLoaded", () => {
         const isFull = (surah && fAyah === 1 && tAyah === surah.ayat);
         talqeenSurahEl.textContent = `سورة ${session.surahName}`;
         talqeenAyatEl.innerHTML = `<span>📜</span> الآيات: من ${fAyah} إلى ${tAyah} ${isFull ? '(كاملة)' : ''}`;
+
+        if (talqeenBadgeEl) {
+          if (session.talqeenCarriedFrom) {
+            talqeenBadgeEl.className = "session-status-badge badge-carried";
+            talqeenBadgeEl.innerHTML = `<span class="badge-icon">⏳</span> مُرحّل تلقائياً (${formatDateDDMMYYYY(session.talqeenCarriedFrom)})`;
+            talqeenBadgeEl.title = `تم ترحيل هذا المقرر تلقائياً من جلسة يوم ${formatDateDDMMYYYY(session.talqeenCarriedFrom, true)}`;
+          } else {
+            talqeenBadgeEl.className = "session-status-badge badge-confirmed";
+            talqeenBadgeEl.innerHTML = `<span class="badge-icon">✓</span> معتمد لليوم`;
+            talqeenBadgeEl.title = "تم تعديل واعتماد هذا المقرر لليوم";
+          }
+        }
       } else {
         talqeenSurahEl.textContent = "سورة الفاتحة";
         talqeenAyatEl.innerHTML = `<span>📜</span> الآيات: من 1 إلى 7 (كاملة)`;
+        if (talqeenBadgeEl) {
+          talqeenBadgeEl.className = "session-status-badge badge-default";
+          talqeenBadgeEl.innerHTML = `<span class="badge-icon">📌</span> مقرر افتراضي`;
+          talqeenBadgeEl.title = "مقرر افتراضي لعدم وجود جلسات سابقة مسجلة";
+        }
       }
     }
 
     // بطاقة الوعظ
     const wadhTitleEl = document.getElementById("wadhTitleDisplay");
     const wadhPageEl = document.getElementById("wadhPageDisplay");
+    const wadhBadgeEl = document.getElementById("wadhDateBadge");
+
     if (wadhTitleEl && wadhPageEl) {
       if (session.lessonTitle) {
         wadhTitleEl.textContent = session.lessonTitle;
         wadhPageEl.innerHTML = `<span>📌</span> المرجع / الصفحة: ${session.lessonPage || "غير محدد"}`;
+
+        if (wadhBadgeEl) {
+          if (session.wadhCarriedFrom) {
+            wadhBadgeEl.className = "session-status-badge badge-carried";
+            wadhBadgeEl.innerHTML = `<span class="badge-icon">⏳</span> مُرحّل تلقائياً (${formatDateDDMMYYYY(session.wadhCarriedFrom)})`;
+            wadhBadgeEl.title = `تم ترحيل هذا الدرس تلقائياً من جلسة يوم ${formatDateDDMMYYYY(session.wadhCarriedFrom, true)}`;
+          } else {
+            wadhBadgeEl.className = "session-status-badge badge-confirmed";
+            wadhBadgeEl.innerHTML = `<span class="badge-icon">✓</span> معتمد لليوم`;
+            wadhBadgeEl.title = "تم تعديل واعتماد هذا الدرس لليوم";
+          }
+        }
       } else {
         wadhTitleEl.textContent = "فضل تدبر القرآن والعمل به";
         wadhPageEl.innerHTML = `<span>📌</span> المرجع / الصفحة: غير محدد`;
+        if (wadhBadgeEl) {
+          wadhBadgeEl.className = "session-status-badge badge-default";
+          wadhBadgeEl.innerHTML = `<span class="badge-icon">📌</span> درس افتراضي`;
+          wadhBadgeEl.title = "درس افتراضي لعدم وجود دروس سابقة مسجلة";
+        }
       }
     }
   }
@@ -1420,11 +1470,11 @@ document.addEventListener("DOMContentLoaded", () => {
             <div class="history-day-content">
               <div class="content-item">
                 <span style="color: var(--primary); font-weight: 700;">✨ ورد التلقين:</span>
-                <span>${summary.session.surahName ? `سورة ${summary.session.surahName} (الآيات ${summary.session.fromAyah || 1} - ${summary.session.toAyah || summary.session.fromAyah || 1})` : "غير مسجل"}</span>
+                <span>${summary.session.surahName ? `سورة ${escapeHtml(summary.session.surahName)} (الآيات ${summary.session.fromAyah || 1} - ${summary.session.toAyah || summary.session.fromAyah || 1})${summary.session.talqeenCarriedFrom ? ` <small class="status-tag tag-carried" style="padding: 0.1rem 0.45rem; font-size: 0.72rem; vertical-align: middle;">مُرحّل (${escapeHtml(formatDateDDMMYYYY(summary.session.talqeenCarriedFrom))})</small>` : ''}` : "غير مسجل"}</span>
               </div>
               <div class="content-item">
                 <span style="color: var(--gold); font-weight: 700;">💡 درس الوعظ:</span>
-                <span>${summary.session.lessonTitle || "غير مسجل"} ${summary.session.lessonPage ? `(${summary.session.lessonPage})` : ''}</span>
+                <span>${summary.session.lessonTitle ? `${escapeHtml(summary.session.lessonTitle)} ${summary.session.lessonPage ? `(${escapeHtml(summary.session.lessonPage)})` : ''}${summary.session.wadhCarriedFrom ? ` <small class="status-tag tag-carried" style="padding: 0.1rem 0.45rem; font-size: 0.72rem; vertical-align: middle;">مُرحّل (${escapeHtml(formatDateDDMMYYYY(summary.session.wadhCarriedFrom))})</small>` : ''}` : "غير مسجل"}</span>
               </div>
               <div class="content-item" style="border-top: 1px dashed var(--border-color); padding-top: 0.35rem; margin-top: 0.35rem;">
                 <span>👥 الحضور: <strong>${summary.presentCount}</strong> حاضر / <strong>${summary.absentCount}</strong> غائب</span>
@@ -1496,7 +1546,10 @@ document.addEventListener("DOMContentLoaded", () => {
           <div>
             <div class="archive-item-top">
               <span class="archive-date-badge">📅 ${escapeHtml(formatDateDDMMYYYY(item.date, true))}</span>
-              <span class="status-tag tag-present">ورد تلقين</span>
+              <div style="display: flex; gap: 0.35rem; align-items: center; flex-wrap: wrap;">
+                ${item.talqeenCarriedFrom ? `<span class="status-tag tag-carried" title="مُرحّل تلقائياً من ${escapeHtml(formatDateDDMMYYYY(item.talqeenCarriedFrom))}">⏳ مُرحّل</span>` : `<span class="status-tag tag-present" style="background: rgba(16, 185, 129, 0.15);">✓ معتمد</span>`}
+                <span class="status-tag tag-present">ورد تلقين</span>
+              </div>
             </div>
             <div class="archive-item-title">سورة ${escapeHtml(item.surahName)}</div>
             <div class="archive-item-subtitle">📜 الآيات: <strong>${item.fromAyah || 1}</strong> إلى <strong>${item.toAyah || item.fromAyah || 1}</strong> ${isFull ? '(كاملة)' : ''}</div>
@@ -1548,7 +1601,10 @@ document.addEventListener("DOMContentLoaded", () => {
         <div>
           <div class="archive-item-top">
             <span class="archive-date-badge">📅 ${escapeHtml(formatDateDDMMYYYY(item.date, true))}</span>
-            <span class="status-tag tag-pending">درس إيمان</span>
+            <div style="display: flex; gap: 0.35rem; align-items: center; flex-wrap: wrap;">
+              ${item.wadhCarriedFrom ? `<span class="status-tag tag-carried" title="مُرحّل تلقائياً من ${escapeHtml(formatDateDDMMYYYY(item.wadhCarriedFrom))}">⏳ مُرحّل</span>` : `<span class="status-tag tag-present" style="background: rgba(16, 185, 129, 0.15);">✓ معتمد</span>`}
+              <span class="status-tag tag-pending">درس إيمان</span>
+            </div>
           </div>
           <div class="archive-item-title">${escapeHtml(item.lessonTitle)}</div>
           <div class="archive-item-subtitle">📌 المرجع / الصفحة: <strong>${escapeHtml(item.lessonPage || "غير محدد")}</strong></div>
@@ -1892,16 +1948,17 @@ document.addEventListener("DOMContentLoaded", () => {
     // النسخ الاحتياطي
     document.getElementById("btnExportJson").addEventListener("click", handleExportBackup);
 
+    const triggerImportBtn = document.getElementById("btnTriggerImportFile");
     const fileInput = document.getElementById("importJsonFileInput");
-    document.getElementById("btnTriggerImportFile").addEventListener("click", () => {
-      fileInput.click();
-    });
-    fileInput.addEventListener("change", e => {
-      if (e.target.files && e.target.files[0]) {
-        handleImportBackupFile(e.target.files[0]);
-        e.target.value = "";
-      }
-    });
+    if (triggerImportBtn && fileInput) {
+      triggerImportBtn.addEventListener("click", () => fileInput.click());
+      fileInput.addEventListener("change", e => {
+        if (e.target.files && e.target.files[0]) {
+          handleImportBackupFile(e.target.files[0]);
+          e.target.value = "";
+        }
+      });
+    }
 
     document.getElementById("btnResetAllData").addEventListener("click", () => {
       showConfirmDialog("إعادة ضبط المصنع بالكامل", "تحذير شديد: سيتم مسح كافة بيانات الطلاب والحضور والمقررات فورياً والبدء من جديد. هل أنت متأكد تماماً؟", () => {

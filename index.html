@@ -98,7 +98,7 @@
               <span class="session-badge">
                 <span>✨</span> ورد التلقين لليوم
               </span>
-              <span style="font-size: 0.8rem; color: var(--text-muted);" id="talqeenDateBadge">اليوم</span>
+              <span class="session-status-badge badge-default" id="talqeenDateBadge">اليوم</span>
             </div>
             <div class="session-content">
               <div class="session-main-text" id="talqeenSurahDisplay">سورة الفاتحة</div>
@@ -121,7 +121,7 @@
               <span class="session-badge">
                 <span>💡</span> درس الوعظ والإيمان
               </span>
-              <span style="font-size: 0.8rem; color: var(--text-muted);" id="wadhDateBadge">اليوم</span>
+              <span class="session-status-badge badge-default" id="wadhDateBadge">اليوم</span>
             </div>
             <div class="session-content">
               <div class="session-main-text" id="wadhTitleDisplay">فضل تدبر القرآن الكريم</div>
@@ -259,8 +259,8 @@
     <section id="historyViewSection" class="history-view-section" aria-label="مركز السجلات والأرشيف">
       <div class="history-header-card">
         <div class="history-header-title">
-          <button id="btnBackFromHistory" class="icon-btn" title="رجوع للحلقة">
-            <span>←</span>
+          <button id="btnBackFromHistory" class="icon-btn" title="رجوع للحلقة" aria-label="رجوع للحلقة">
+            <span style="display: inline-block; transform: rotate(180deg); font-size: 1.3rem; font-weight: 700; line-height: 1;">←</span>
           </button>
           <h2>مركز السجلات والأرشيف</h2>
         </div>
@@ -774,20 +774,6 @@
           </p>
           <button type="button" id="btnExportJson" class="btn-primary" style="width: 100%;">
             <span>📥</span> تحميل ملف النسخة الاحتياطية الآن
-          </button>
-        </div>
-
-        <!-- بطاقة الاستعادة -->
-        <div style="background: var(--bg-glass-input); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1.25rem; margin-bottom: 1.25rem;">
-          <h4 style="font-size: 1.05rem; font-weight: 800; color: var(--gold); margin-bottom: 0.4rem;">
-            📤 استعادة البيانات من ملف (Import Backup)
-          </h4>
-          <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.9rem;">
-            اختر ملف نسخة احتياطية سبق تصديره لاستعادة كافة البيانات فورياً.
-          </p>
-          <input type="file" id="importJsonFileInput" accept=".json" style="display: none;">
-          <button type="button" id="btnTriggerImportFile" class="btn-secondary" style="width: 100%;">
-            <span>📂</span> اختيار ملف النسخة الاحتياطية (.json)
           </button>
         </div>
 

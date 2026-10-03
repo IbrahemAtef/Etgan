@@ -152,7 +152,7 @@ class StorageManager {
     return true;
   }
 
-  // ===================== جلسات ورد اليوم والمقرر =====================
+  // ===================== جلسات ورد اليوم والمقرر والترحيل الذكي =====================
   getDailySessionsMap() {
     try {
       const data = localStorage.getItem(STORAGE_KEYS.SESSIONS);
@@ -169,8 +169,104 @@ class StorageManager {
       surahName: "",
       pageNumber: "",
       lessonTitle: "",
-      lessonPage: ""
+      lessonPage: "",
+      talqeenCarriedFrom: null,
+      wadhCarriedFrom: null
     };
+  }
+
+  /**
+   * البحث العكسي الذكي عن آخر ورد تلقين مسجل في التاريخ قبل تاريخ معين
+   */
+  getLatestRecordedTalqeen(beforeDate = null) {
+    const map = this.getDailySessionsMap();
+    const sortedDates = Object.keys(map).sort((a, b) => b.localeCompare(a));
+    for (const d of sortedDates) {
+      if (beforeDate && d >= beforeDate) continue;
+      const item = map[d];
+      if (item && item.surahName) {
+        return {
+          date: d,
+          surahName: item.surahName,
+          fromAyah: item.fromAyah || 1,
+          toAyah: item.toAyah || item.fromAyah || 1,
+          pageNumber: item.pageNumber || null,
+          originalSourceDate: item.talqeenCarriedFrom || d
+        };
+      }
+    }
+    return null;
+  }
+
+  /**
+   * البحث العكسي الذكي عن آخر درس وعظ مسجل في التاريخ قبل تاريخ معين
+   */
+  getLatestRecordedWadh(beforeDate = null) {
+    const map = this.getDailySessionsMap();
+    const sortedDates = Object.keys(map).sort((a, b) => b.localeCompare(a));
+    for (const d of sortedDates) {
+      if (beforeDate && d >= beforeDate) continue;
+      const item = map[d];
+      if (item && item.lessonTitle) {
+        return {
+          date: d,
+          lessonTitle: item.lessonTitle,
+          lessonPage: item.lessonPage || "",
+          originalSourceDate: item.wadhCarriedFrom || d
+        };
+      }
+    }
+    return null;
+  }
+
+  /**
+   * ضمان تسجيل جلسة اليوم بالترحيل التلقائي الصامت والمستقل لكل بطاقة:
+   * إذا لم يكن لليوم ورد تلقين، يُرحّل آخر ورد مسجل مع وسم تاريخ المصدر الأصلي.
+   * إذا لم يكن لليوم درس وعظ، يُرحّل آخر درس مسجل مع وسم تاريخ المصدر الأصلي.
+   */
+  ensureDailySessionWithCarryOver(todayDate) {
+    const map = this.getDailySessionsMap();
+    let current = map[todayDate] ? { ...map[todayDate] } : null;
+    let modified = false;
+
+    if (!current) {
+      current = {
+        date: todayDate,
+        updatedAt: new Date().toISOString()
+      };
+      modified = true;
+    }
+
+    // 1. ترحيل التلقين إذا لم يكن مسجلاً لليوم
+    if (!current.surahName) {
+      const latestTalqeen = this.getLatestRecordedTalqeen(todayDate);
+      if (latestTalqeen) {
+        current.surahName = latestTalqeen.surahName;
+        current.fromAyah = latestTalqeen.fromAyah;
+        current.toAyah = latestTalqeen.toAyah;
+        current.pageNumber = latestTalqeen.pageNumber;
+        current.talqeenCarriedFrom = latestTalqeen.originalSourceDate;
+        modified = true;
+      }
+    }
+
+    // 2. ترحيل درس الوعظ إذا لم يكن مسجلاً لليوم
+    if (!current.lessonTitle) {
+      const latestWadh = this.getLatestRecordedWadh(todayDate);
+      if (latestWadh) {
+        current.lessonTitle = latestWadh.lessonTitle;
+        current.lessonPage = latestWadh.lessonPage;
+        current.wadhCarriedFrom = latestWadh.originalSourceDate;
+        modified = true;
+      }
+    }
+
+    if (modified) {
+      map[todayDate] = current;
+      localStorage.setItem(STORAGE_KEYS.SESSIONS, JSON.stringify(map));
+    }
+
+    return current;
   }
 
   saveSessionForDate(date, sessionData) {
@@ -195,6 +291,7 @@ class StorageManager {
       fromAyah: fAyah,
       toAyah: tAyah,
       pageNumber: pageNumber || null,
+      talqeenCarriedFrom: null, // تم الاعتماد والتعديل المباشر لليوم
       date: date,
       updatedAt: new Date().toISOString()
     };
@@ -208,6 +305,7 @@ class StorageManager {
       ...(map[date] || {}),
       lessonTitle: lessonTitle,
       lessonPage: lessonPage,
+      wadhCarriedFrom: null, // تم الاعتماد والتعديل المباشر لليوم
       date: date,
       updatedAt: new Date().toISOString()
     };
@@ -227,6 +325,7 @@ class StorageManager {
           fromAyah: item.fromAyah || 1,
           toAyah: item.toAyah || item.fromAyah || 1,
           pageNumber: item.pageNumber || null,
+          talqeenCarriedFrom: item.talqeenCarriedFrom || null,
           updatedAt: item.updatedAt
         });
       }
@@ -245,6 +344,7 @@ class StorageManager {
           date: date,
           lessonTitle: item.lessonTitle,
           lessonPage: item.lessonPage || "",
+          wadhCarriedFrom: item.wadhCarriedFrom || null,
           updatedAt: item.updatedAt
         });
       }
